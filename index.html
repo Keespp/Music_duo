@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncMusic - Escucha con amigos</title>
+    <!-- Tailwind CSS para el diseño -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Iconos Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; }
+        .yt-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            border-radius: 0.5rem;
+            background: #000;
+        }
+        .yt-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+        /* Toast animaciones */
+        @keyframes slideIn {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .toast-enter { animation: slideIn 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans">
+
+    <!-- Navbar -->
+    <nav class="bg-slate-900 border-b border-slate-800 p-4 shadow-md">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2 text-indigo-400">
+                <i data-lucide="headphones" class="w-6 h-6"></i>
+                <h1 class="text-xl font-bold text-white">Sync<span class="text-indigo-400">Music</span></h1>
+            </div>
+            <div id="statusBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 flex items-center gap-2 transition-colors">
+                <span class="w-2 h-2 rounded-full bg-slate-500" id="statusDot"></span>
+                <span id="statusText">Conectando...</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-4xl w-full mx-auto p-4 flex flex-col gap-6 mt-4">
+        
+        <!-- Controles de Sala -->
+        <div class="bg-slate-800 rounded-xl p-5 shadow-lg border border-slate-700">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="users" class="w-5 h-5 text-indigo-400"></i>
+                Sala de Escucha
+            </h2>
+            
+            <div id="roomSetup" class="flex flex-col sm:flex-row gap-3">
+                <button id="btnCreateRoom" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition flex justify-center items-center gap-2 disabled:opacity-50">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Crear Nueva Sala
+                </button>
+                <div class="flex-1 flex gap-2">
+                    <input type="text" id="inputRoomId" placeholder="Código de la sala..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 transition uppercase text-center font-mono">
+                    <button id="btnJoinRoom" class="bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-lg transition flex items-center gap-2 disabled:opacity-50">
+                        <i data-lucide="log-in" class="w-4 h-4"></i> Unirse
+                    </button>
+                </div>
+            </div>
+
+            <div id="roomActiveInfo" class="hidden flex-col sm:flex-row items-center justify-between bg-slate-900 p-4 rounded-lg border border-slate-700">
+                <div class="flex flex-col">
+                    <span class="text-xs text-slate-400">Estás en la sala:</span>
+                    <span id="displayRoomId" class="text-xl font-mono font-bold tracking-wider text-indigo-400">---</span>
+                </div>
+                <div class="flex gap-2 mt-3 sm:mt-0">
+                    <button id="btnCopyRoom" class="bg-slate-700 hover:bg-slate-600 text-white py-1.5 px-3 rounded text-sm transition flex items-center gap-2">
+                        <i data-lucide="copy" class="w-4 h-4"></i> Copiar Código
+                    </button>
+                    <button id="btnLeaveRoom" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 py-1.5 px-3 rounded text-sm transition flex items-center gap-2 border border-red-500/20">
+                        <i data-lucide="log-out" class="w-4 h-4"></i> Salir
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reproductor y Controles (Oculto hasta entrar a una sala) -->
+        <div id="playerSection" class="hidden flex-col gap-4">
+            
+            <!-- Buscador / Cargar Video -->
+            <div class="bg-slate-800 p-2 rounded-lg flex gap-2 border border-slate-700 shadow-md focus-within:border-indigo-500 transition-colors">
+                <div class="pl-3 flex items-center text-slate-400">
+                    <i data-lucide="youtube" class="w-5 h-5"></i>
+                </div>
+                <input type="text" id="inputVideoUrl" placeholder="Pega el enlace de YouTube aquí..." class="flex-1 bg-transparent border-none outline-none text-white px-2 placeholder-slate-500">
+                <button id="btnLoadVideo" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-6 rounded-md font-medium transition disabled:opacity-50">
+                    Cargar
+                </button>
+            </div>
+
+            <!-- Contenedor del reproductor de YouTube -->
+            <div class="yt-container shadow-2xl border border-slate-800">
+                <div id="youtubePlayer"></div>
+            </div>
+            
+            <div class="flex justify-between items-center text-sm text-slate-400 bg-slate-800 p-3 rounded-lg border border-slate-700">
+                <span class="flex items-center gap-1"><i data-lucide="info" class="w-4 h-4"></i> La reproducción se sincroniza automáticamente.</span>
+                <button id="btnForceSync" class="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Forzar Sincronización
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Contenedor de Toasts (Notificaciones) -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 flex flex-col gap-2 z-50"></div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Configuración e Inicialización de Firebase ---
+        let firebaseConfig = {};
+        try {
+            firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        } catch (e) {
+            console.error("Error leyendo configuración de Firebase", e);
+        }
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'syncmusic-app';
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- Variables de Estado Globales ---
+        let currentUser = null;
+        let currentRoomId = null;
+        let unsubscribeRoom = null;
+        let ytPlayer = null;
+        let isPlayerReady = false;
+        let isRemoteUpdate = false; // Bandera para evitar bucles infinitos de eventos
+        let lastKnownState = null;
+
+        // --- Elementos del DOM ---
+        const els = {
+            statusBadge: document.getElementById('statusBadge'),
+            statusDot: document.getElementById('statusDot'),
+            statusText: document.getElementById('statusText'),
+            roomSetup: document.getElementById('roomSetup'),
+            roomActiveInfo: document.getElementById('roomActiveInfo'),
+            btnCreateRoom: document.getElementById('btnCreateRoom'),
+            inputRoomId: document.getElementById('inputRoomId'),
+            btnJoinRoom: document.getElementById('btnJoinRoom'),
+            displayRoomId: document.getElementById('displayRoomId'),
+            btnCopyRoom: document.getElementById('btnCopyRoom'),
+            btnLeaveRoom: document.getElementById('btnLeaveRoom'),
+            playerSection: document.getElementById('playerSection'),
+            inputVideoUrl: document.getElementById('inputVideoUrl'),
+            btnLoadVideo: document.getElementById('btnLoadVideo'),
+            btnForceSync: document.getElementById('btnForceSync')
+        };
+
+        // Inicializar iconos
+        lucide.createIcons();
+
+        // --- Utilidades de Interfaz ---
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            const bgClass = type === 'error' ? 'bg-red-900 border-red-700' : (type === 'success' ? 'bg-green-900 border-green-700' : 'bg-slate-800 border-slate-700');
+            toast.className = `toast-enter ${bgClass} border text-white px-4 py-3 rounded-lg shadow-lg text-sm flex items-center gap-2 max-w-xs`;
+            
+            let iconName = 'info';
+            if(type === 'error') iconName = 'alert-circle';
+            if(type === 'success') iconName = 'check-circle';
+            
+            toast.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4"></i> <span>${message}</span>`;
+            document.getElementById('toastContainer').appendChild(toast);
+            lucide.createIcons({ root: toast });
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(100%)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function updateConnectionStatus(isConnected, text) {
+            els.statusText.textContent = text;
+            els.statusBadge.className = isConnected 
+                ? 'px-3 py-1 rounded-full text-xs font-semibold bg-green-900/50 text-green-400 flex items-center gap-2 border border-green-800/50'
+                : 'px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 flex items-center gap-2 border border-slate-700';
+            els.statusDot.className = isConnected ? 'w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 'w-2 h-2 rounded-full bg-slate-500';
+        }
+
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+            return code;
+        }
+
+        function extractYouTubeID(url) {
+            const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[7].length == 11) ? match[7] : false;
+        }
+
+        // --- Lógica de Firebase Auth ---
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Error de autenticación:", error);
+                showToast("Error al conectar con el servidor.", "error");
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                updateConnectionStatus(true, "Conectado");
+                els.btnCreateRoom.disabled = false;
+                els.btnJoinRoom.disabled = false;
+            } else {
+                currentUser = null;
+                updateConnectionStatus(false, "Desconectado");
+                els.btnCreateRoom.disabled = true;
+                els.btnJoinRoom.disabled = true;
+            }
+        });
+
+        // Iniciar Auth al cargar
+        initAuth();
+
+        // --- Lógica de YouTube API ---
+        // Cargar script de IFrame API
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        window.onYouTubeIframeAPIReady = function() {
+            ytPlayer = new YT.Player('youtubePlayer', {
+                height: '100%',
+                width: '100%',
+                videoId: '', // Empieza vacío
+                playerVars: {
+                    'playsinline': 1,
+                    'controls': 1,
+                    'disablekb': 0,
+                    'rel': 0
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        };
+
+        function onPlayerReady(event) {
+            isPlayerReady = true;
+        }
+
+        function onPlayerStateChange(event) {
+            if (!currentRoomId || !currentUser || isRemoteUpdate) return;
+
+            // YouTube Events: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
+            if (event.data === YT.PlayerState.PLAYING || event.data === YT.PlayerState.PAUSED) {
+                const videoData = ytPlayer.getVideoData();
+                if (!videoData || !videoData.video_id) return;
+
+                const isPlaying = event.data === YT.PlayerState.PLAYING;
+                const currentTime = ytPlayer.getCurrentTime();
+
+                updateRoomState(videoData.video_id, isPlaying, currentTime);
+            }
+        }
+
+        // --- Lógica de Salas (Firestore) ---
+        async function updateRoomState(videoId, isPlaying, timestamp) {
+            if (!currentRoomId || !currentUser) return;
+            
+            try {
+                // REGLA 1: Path estricto para datos públicos
+                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+                await setDoc(roomRef, {
+                    videoId: videoId,
+                    isPlaying: isPlaying,
+                    timestamp: timestamp,
+                    updatedAt: Date.now(),
+                    updatedBy: currentUser.uid
+                }, { merge: true });
+            } catch (error) {
+                console.error("Error actualizando estado:", error);
+            }
+        }
+
+        function joinRoom(roomId) {
+            if (!currentUser) return;
+            if (unsubscribeRoom) unsubscribeRoom();
+
+            currentRoomId = roomId.toUpperCase();
+            
+            // Actualizar UI
+            els.roomSetup.classList.add('hidden');
+            els.roomActiveInfo.classList.remove('hidden');
+            els.roomActiveInfo.classList.add('flex');
+            els.displayRoomId.textContent = currentRoomId;
+            els.playerSection.classList.remove('hidden');
+            els.playerSection.classList.add('flex');
+            showToast(`Te has unido a la sala ${currentRoomId}`, 'success');
+
+            // Suscribirse a cambios en Firestore
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+            
+            unsubscribeRoom = onSnapshot(roomRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    handleRemoteStateChange(data);
+                }
+            }, (error) => {
+                console.error("Error escuchando sala:", error);
+                showToast("Error de conexión con la sala.", "error");
+            });
+        }
+
+        function handleRemoteStateChange(data) {
+            if (!isPlayerReady || !ytPlayer || !ytPlayer.getVideoData) return;
+            
+            // Prevenir eco de nuestros propios cambios
+            if (data.updatedBy === currentUser.uid) return;
+            
+            lastKnownState = data;
+            
+            isRemoteUpdate = true; // Pausar eventos locales
+
+            try {
+                const currentVideoId = ytPlayer.getVideoData().video_id;
+                
+                // Si el video cambió, cargar el nuevo
+                if (data.videoId && currentVideoId !== data.videoId) {
+                    if (data.isPlaying) {
+                        ytPlayer.loadVideoById(data.videoId, data.timestamp);
+                    } else {
+                        ytPlayer.cueVideoById(data.videoId, data.timestamp);
+                    }
+                } else if (data.videoId) {
+                    // Mismo video, verificar sincronización de tiempo y estado
+                    const currentTime = ytPlayer.getCurrentTime() || 0;
+                    const timeDiff = Math.abs(currentTime - data.timestamp);
+                    
+                    // Si la diferencia de tiempo es mayor a 2 segundos, resincronizar
+                    if (timeDiff > 2) {
+                        ytPlayer.seekTo(data.timestamp, true);
+                    }
+
+                    // Sincronizar estado Play/Pause
+                    if (data.isPlaying && ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
+                        ytPlayer.playVideo();
+                    } else if (!data.isPlaying && ytPlayer.getPlayerState() !== YT.PlayerState.PAUSED) {
+                        ytPlayer.pauseVideo();
+                    }
+                }
+            } catch (e) {
+                console.error("Error aplicando estado remoto", e);
+            }
+
+            // Liberar bandera después de un breve momento para permitir que los eventos de YT se procesen
+            setTimeout(() => { isRemoteUpdate = false; }, 500);
+        }
+
+        function leaveRoom() {
+            if (unsubscribeRoom) {
+                unsubscribeRoom();
+                unsubscribeRoom = null;
+            }
+            currentRoomId = null;
+            lastKnownState = null;
+            
+            if (isPlayerReady && ytPlayer) {
+                ytPlayer.stopVideo();
+            }
+
+            els.roomActiveInfo.classList.add('hidden');
+            els.roomActiveInfo.classList.remove('flex');
+            els.playerSection.classList.add('hidden');
+            els.playerSection.classList.remove('flex');
+            els.roomSetup.classList.remove('hidden');
+            els.inputRoomId.value = '';
+            showToast("Has salido de la sala", "info");
+        }
+
+        // --- Listeners de Eventos UI ---
+        els.btnCreateRoom.addEventListener('click', () => {
+            const newCode = generateRoomCode();
+            joinRoom(newCode);
+        });
+
+        els.btnJoinRoom.addEventListener('click', () => {
+            const code = els.inputRoomId.value.trim();
+            if (code.length < 3) {
+                showToast("Ingresa un código válido", "error");
+                return;
+            }
+            joinRoom(code);
+        });
+
+        els.btnLeaveRoom.addEventListener('click', leaveRoom);
+
+        els.btnCopyRoom.addEventListener('click', () => {
+            const tempInput = document.createElement('input');
+            tempInput.value = currentRoomId;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showToast("Código copiado al portapapeles", "success");
+        });
+
+        els.btnLoadVideo.addEventListener('click', () => {
+            const url = els.inputVideoUrl.value.trim();
+            if (!url) return;
+
+            const videoId = extractYouTubeID(url);
+            if (videoId) {
+                if (isPlayerReady) {
+                    els.inputVideoUrl.value = ''; // Limpiar input
+                    // Cargamos el video y lo pausamos para que el otro usuario lo reciba, 
+                    // o lo reproducimos directamente. Optamos por reproducirlo.
+                    ytPlayer.loadVideoById(videoId);
+                    updateRoomState(videoId, true, 0);
+                    showToast("Video cargado y enviando a la sala", "success");
+                }
+            } else {
+                showToast("Enlace de YouTube no válido", "error");
+            }
+        });
+
+        // Permitir Enter en inputs
+        els.inputRoomId.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') els.btnJoinRoom.click();
+        });
+        
+        els.inputVideoUrl.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') els.btnLoadVideo.click();
+        });
+
+        els.btnForceSync.addEventListener('click', () => {
+            if (lastKnownState) {
+                showToast("Forzando sincronización...", "info");
+                handleRemoteStateChange({...lastKnownState, updatedBy: 'force'}); 
+            } else if (isPlayerReady) {
+                // Si nosotros somos los que iniciamos, empujamos nuestro estado
+                const videoData = ytPlayer.getVideoData();
+                if (videoData && videoData.video_id) {
+                    updateRoomState(
+                        videoData.video_id, 
+                        ytPlayer.getPlayerState() === YT.PlayerState.PLAYING, 
+                        ytPlayer.getCurrentTime()
+                    );
+                    showToast("Estado enviado a la sala", "success");
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
