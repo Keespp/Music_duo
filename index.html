@@ -250,32 +250,47 @@
             return (match && match[7].length == 11) ? match[7] : false;
         }
 
-        // --- Lógica de Búsqueda (API Libre Piped) ---
+        // --- Configuración API de YouTube ---
+        // Pega tu API Key de YouTube aquí dentro de las comillas
+        const YOUTUBE_API_KEY = "AIzaSyDTNEawkTGfUwuImfTaDUmHqE6plo4FYnE";
+
+        // --- Lógica de Búsqueda (API Oficial de YouTube) ---
         async function performSearch(query) {
+            if (!YOUTUBE_API_KEY || YOUTUBE_API_KEY === "TU_API_KEY_DE_YOUTUBE_AQUI") {
+                showToast("Por favor, configura tu API Key de YouTube en el código.", "error");
+                return;
+            }
+
             els.btnSearch.disabled = true;
             els.btnSearch.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>';
             lucide.createIcons();
 
+            const encodedQuery = encodeURIComponent(query);
+            const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=8&q=${encodedQuery}&type=video&key=${YOUTUBE_API_KEY}`;
+
             try {
-                // Instancia pública de Piped (no requiere API key)
-                const res = await fetch(`https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(query)}&filter=music_songs`);
-                if (!res.ok) throw new Error("API Piped falló");
+                const res = await fetch(url);
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.error?.message || "Error en la API de YouTube");
+                }
                 
                 const data = await res.json();
-                const videos = data.items.filter(item => item.type === 'stream').slice(0, 8); // Top 8 resultados
+                
+                const videos = data.items.map(item => ({
+                    id: item.id.videoId,
+                    // Decodificar entidades HTML simples que a veces trae YouTube en los títulos
+                    title: item.snippet.title.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&#39;/g, "'"),
+                    uploaderName: item.snippet.channelTitle,
+                    thumbnail: item.snippet.thumbnails.medium.url,
+                    duration: 0 // La API de búsqueda básica no devuelve la duración
+                }));
+
                 displaySearchResults(videos);
-            } catch (error) {
-                console.error("Error buscando:", error);
-                // Fallback a otra instancia si la primera falla
-                try {
-                    const res = await fetch(`https://pipedapi.adminforge.de/search?q=${encodeURIComponent(query)}&filter=all`);
-                    const data = await res.json();
-                    const videos = data.items.filter(item => item.type === 'stream').slice(0, 8);
-                    displaySearchResults(videos);
-                } catch (err2) {
-                    showToast("Error al buscar. Por favor pega un enlace de YouTube directamente.", "error");
-                    els.searchResults.classList.add('hidden');
-                }
+            } catch (err) {
+                console.error("Error buscando en YouTube:", err);
+                showToast("Error al buscar: " + err.message, "error");
+                els.searchResults.classList.add('hidden');
             } finally {
                 els.btnSearch.disabled = false;
                 els.btnSearch.innerHTML = 'Buscar';
@@ -292,16 +307,16 @@
             }
 
             videos.forEach(video => {
-                const videoId = video.url.split('?v=')[1];
+                const videoId = video.id;
                 const div = document.createElement('div');
                 div.className = "flex items-center gap-3 p-3 hover:bg-slate-700 cursor-pointer transition";
                 div.innerHTML = `
                     <div class="relative w-24 h-16 flex-shrink-0">
                         <img src="${video.thumbnail}" class="w-full h-full object-cover rounded" alt="Miniatura">
-                        <span class="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1 rounded">${video.duration > 0 ? Math.floor(video.duration/60)+':'+(video.duration%60).toString().padStart(2,'0') : 'Live'}</span>
+                        <span class="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1 rounded">${video.duration > 0 ? Math.floor(video.duration/60)+':'+(video.duration%60).toString().padStart(2,'0') : 'Video'}</span>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h4 class="text-sm font-semibold text-white truncate" title="${video.title}">${video.title}</h4>
+                        <h4 class="text-sm font-semibold text-white truncate" title="${video.title.replace(/"/g, '&quot;')}">${video.title}</h4>
                         <p class="text-xs text-slate-400 truncate">${video.uploaderName}</p>
                     </div>
                 `;
