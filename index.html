@@ -37,6 +37,24 @@
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+
+        /* Animación de Reacciones Flotantes */
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.5) rotate(var(--rot-start)); opacity: 0; }
+            10% { opacity: 1; scale: 1; }
+            100% { transform: translateY(-180px) scale(1.5) rotate(var(--rot-end)); opacity: 0; }
+        }
+        .floating-emoji {
+            animation: floatUp 2s ease-out forwards;
+            position: absolute;
+            bottom: 20px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+            pointer-events: none;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col font-sans overflow-x-hidden">
@@ -117,19 +135,36 @@
                     </div>
                 </div>
 
-                <!-- Contenedor del reproductor de YouTube -->
-                <div class="yt-container shadow-2xl border border-slate-800 relative z-0">
+                <!-- Contenedor del reproductor de YouTube con capa de reacciones -->
+                <div class="yt-container shadow-2xl border border-slate-800 relative z-0 group">
                     <div id="youtubePlayer"></div>
+                    <!-- Capa invisible para atrapar las reacciones animadas -->
+                    <div id="reactionOverlay" class="absolute inset-0 pointer-events-none flex items-end justify-center overflow-hidden"></div>
                 </div>
                 
+                <!-- Controles Inferiores y Reacciones -->
                 <div class="flex flex-col sm:flex-row justify-between items-center text-sm text-slate-400 bg-slate-800 p-3 rounded-lg border border-slate-700 gap-3">
-                    <span class="flex items-center gap-2 text-center sm:text-left">
-                        <i data-lucide="globe" class="w-4 h-4 text-indigo-400"></i> 
-                        Sincronización en tiempo real habilitada.
-                    </span>
-                    <button id="btnForceSync" class="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition px-3 py-1 bg-indigo-900/30 rounded-full border border-indigo-900/50">
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Forzar Sincronización
-                    </button>
+                    
+                    <!-- Barra de Reacciones -->
+                    <div class="flex items-center gap-2 bg-slate-900/50 px-4 py-1.5 rounded-full border border-slate-700/80 shadow-inner">
+                        <span class="text-xs text-slate-500 mr-1 hidden sm:inline"><i data-lucide="sparkles" class="w-3 h-3 inline"></i> Reaccionar:</span>
+                        <button class="reaction-btn hover:scale-125 hover:-translate-y-1 transition transform text-xl cursor-pointer" data-emoji="❤️">❤️</button>
+                        <button class="reaction-btn hover:scale-125 hover:-translate-y-1 transition transform text-xl cursor-pointer" data-emoji="🔥">🔥</button>
+                        <button class="reaction-btn hover:scale-125 hover:-translate-y-1 transition transform text-xl cursor-pointer" data-emoji="🎶">🎶</button>
+                        <button class="reaction-btn hover:scale-125 hover:-translate-y-1 transition transform text-xl cursor-pointer" data-emoji="😎">😎</button>
+                        <button class="reaction-btn hover:scale-125 hover:-translate-y-1 transition transform text-xl cursor-pointer" data-emoji="😂">😂</button>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <!-- Botón Saltar Siguiente -->
+                        <button id="btnSkipNext" class="text-white hover:text-indigo-300 flex items-center gap-1 transition px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-full border border-slate-600">
+                            <i data-lucide="skip-forward" class="w-4 h-4"></i> Saltar
+                        </button>
+                        <!-- Botón Forzar Sincronización -->
+                        <button id="btnForceSync" class="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition px-3 py-1.5 bg-indigo-900/30 rounded-full border border-indigo-900/50 tooltip" title="Forzar resincronización">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -159,6 +194,14 @@
 
                     <!-- Panel: Chat -->
                     <div id="panelChat" class="hidden flex-1 flex-col overflow-hidden bg-slate-900/30 relative">
+                        
+                        <!-- Header de Chat: Personalizar Nombre -->
+                        <div class="p-2 border-b border-slate-700/50 bg-slate-800/80 flex items-center gap-2 text-xs">
+                            <span class="text-slate-400 whitespace-nowrap"><i data-lucide="user-pen" class="w-3 h-3 inline"></i> Tu nombre:</span>
+                            <input type="text" id="inputUsername" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white focus:outline-none focus:border-indigo-500 flex-1 min-w-0" placeholder="Ej. Juan">
+                            <button id="btnSaveName" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded transition">Guardar</button>
+                        </div>
+
                         <div id="chatMessages" class="flex-1 overflow-y-auto custom-scrollbar p-3 flex flex-col gap-3">
                             <!-- Los mensajes se inyectan aquí -->
                         </div>
@@ -206,6 +249,7 @@
             btnSearch: document.getElementById('btnSearch'),
             searchResults: document.getElementById('searchResults'),
             btnForceSync: document.getElementById('btnForceSync'),
+            btnSkipNext: document.getElementById('btnSkipNext'),
             tabQueue: document.getElementById('tabQueue'),
             tabChat: document.getElementById('tabChat'),
             panelQueue: document.getElementById('panelQueue'),
@@ -213,7 +257,10 @@
             emptyQueueMsg: document.getElementById('emptyQueueMsg'),
             chatMessages: document.getElementById('chatMessages'),
             chatForm: document.getElementById('chatForm'),
-            inputChat: document.getElementById('inputChat')
+            inputChat: document.getElementById('inputChat'),
+            inputUsername: document.getElementById('inputUsername'),
+            btnSaveName: document.getElementById('btnSaveName'),
+            reactionOverlay: document.getElementById('reactionOverlay')
         };
 
         // Inicializar iconos
@@ -303,7 +350,8 @@
         let isPlayerReady = false;
         let isRemoteUpdate = false; 
         let lastKnownState = null;
-        let lastVideoUpdateTimestamp = null; // <- NUEVO: Evita reiniciar por culpa del chat
+        let lastVideoUpdateTimestamp = null;
+        let lastReactionId = null; // Para evitar repetir la misma reacción
 
         function generateRoomCode() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -428,6 +476,35 @@
             } catch (error) { console.error(error); }
         }
 
+        // --- FUNCION DE SALTAR A LA SIGUIENTE CANCION ---
+        els.btnSkipNext.addEventListener('click', () => {
+            if (!currentRoomId || !currentUser) return;
+            if (lastKnownState && lastKnownState.queue && lastKnownState.queue.length > 0) {
+                const nextVideo = lastKnownState.queue[0];
+                const newQueue = lastKnownState.queue.slice(1); // Remover el primer elemento
+                updateRoomState(nextVideo.id, true, 0, newQueue);
+                showToast("Saltando a la siguiente canción", "info");
+            } else {
+                showToast("No hay más canciones en la cola", "error");
+            }
+        });
+
+        // --- FUNCION DE ACTUALIZAR NOMBRE DE USUARIO ---
+        els.btnSaveName.addEventListener('click', () => {
+            const newName = els.inputUsername.value.trim();
+            if (newName.length > 0) {
+                username = newName;
+                showToast(`Tu nombre ahora es: ${username}`, "success");
+            } else {
+                els.inputUsername.value = username; // Restaurar si está vacío
+            }
+        });
+        
+        els.inputUsername.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') els.btnSaveName.click();
+        });
+
+
         async function sendChatMessage(text) {
             if (!currentRoomId || !currentUser || !text.trim()) return;
             const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
@@ -440,6 +517,58 @@
             try {
                 await updateDoc(roomRef, { chat: arrayUnion(msg) });
             } catch (error) { console.error(error); }
+        }
+
+        // --- LÓGICA DE REACCIONES FLOTANTES ---
+        document.querySelectorAll('.reaction-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const emoji = btn.getAttribute('data-emoji');
+                sendReaction(emoji);
+                // Mostrar localmente de inmediato para mayor rapidez visual
+                showFloatingReaction(emoji, "Tú"); 
+            });
+        });
+
+        async function sendReaction(emoji) {
+            if (!currentRoomId || !currentUser) return;
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+            try {
+                // Generamos un ID único para la reacción
+                const reactionId = Date.now().toString() + Math.floor(Math.random() * 1000);
+                lastReactionId = reactionId; // Guardamos nuestro propio ID para no duplicarlo al recibirlo
+                
+                await updateDoc(roomRef, {
+                    latestReaction: {
+                        id: reactionId,
+                        emoji: emoji,
+                        user: username
+                    }
+                });
+            } catch (e) { console.error("Error al enviar reacción", e); }
+        }
+
+        function showFloatingReaction(emoji, userName) {
+            const overlay = els.reactionOverlay;
+            const el = document.createElement('div');
+            el.className = 'floating-emoji';
+            
+            // Posición aleatoria horizontal (entre el 20% y el 80% del ancho del reproductor)
+            const leftOffset = 20 + Math.random() * 60; 
+            el.style.left = `${leftOffset}%`;
+            
+            // Rotación inicial y final aleatoria para que cada emoji suba de forma única
+            el.style.setProperty('--rot-start', `${Math.random() * 40 - 20}deg`);
+            el.style.setProperty('--rot-end', `${Math.random() * 80 - 40}deg`);
+            
+            el.innerHTML = `
+                <span class="text-4xl drop-shadow-lg">${emoji}</span>
+                <span class="text-[10px] bg-black/60 px-1.5 py-0.5 rounded text-white mt-1 font-medium tracking-wide shadow-md whitespace-nowrap">${userName}</span>
+            `;
+            
+            overlay.appendChild(el);
+            
+            // Limpiar del DOM al terminar la animación
+            setTimeout(() => { if(el.parentElement) el.remove(); }, 2000);
         }
 
         // Renders visuales
@@ -541,6 +670,7 @@
                 if (user) {
                     currentUser = user;
                     username = "Usuario_" + user.uid.substring(0,4); // Asignar nombre automático
+                    els.inputUsername.value = username; // Reflejar en la UI del chat
                     updateConnectionStatus(true, "Conectado");
                     els.btnCreateRoom.disabled = false;
                     els.btnJoinRoom.disabled = false;
@@ -627,7 +757,7 @@
 
             const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
             
-            // Escuchar cambios de la sala (Cola, Chat, y Reproductor)
+            // Escuchar cambios de la sala (Cola, Chat, Reacciones y Reproductor)
             unsubscribeRoom = onSnapshot(roomRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
@@ -636,7 +766,13 @@
                     renderQueue(data.queue || []);
                     renderChat(data.chat || []);
 
-                    // 2. Procesar el estado del video
+                    // 2. Procesar Reacciones en Vivo
+                    if (data.latestReaction && data.latestReaction.id !== lastReactionId) {
+                        lastReactionId = data.latestReaction.id; // Evitar repetirla
+                        showFloatingReaction(data.latestReaction.emoji, data.latestReaction.user);
+                    }
+
+                    // 3. Procesar el estado del video
                     handleRemoteStateChange(data);
                 }
             }, (error) => {
@@ -647,9 +783,8 @@
         function handleRemoteStateChange(data) {
             if (!isPlayerReady || !ytPlayer || !ytPlayer.getVideoData) return;
             
-            // PREVENCIÓN DE REINICIO POR CHAT/COLA:
+            // PREVENCIÓN DE REINICIO POR CHAT/COLA/REACCIONES:
             // Comparamos si el cambio proviene de una actualización real del reproductor (updatedAt diferente)
-            // Si updatedAt es exactamente igual al último registrado, el video no cambió, solo cambió el chat o la cola.
             if (data.updatedAt && data.updatedAt === lastVideoUpdateTimestamp) {
                 lastKnownState = data;
                 return; 
@@ -687,7 +822,7 @@
 
         function leaveRoom() {
             if (unsubscribeRoom) { unsubscribeRoom(); unsubscribeRoom = null; }
-            currentRoomId = null; lastKnownState = null; lastVideoUpdateTimestamp = null;
+            currentRoomId = null; lastKnownState = null; lastVideoUpdateTimestamp = null; lastReactionId = null;
             if (isPlayerReady && ytPlayer) ytPlayer.stopVideo();
 
             els.roomActiveInfo.classList.add('hidden'); els.roomActiveInfo.classList.remove('flex');
