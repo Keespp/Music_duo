@@ -303,6 +303,7 @@
         let isPlayerReady = false;
         let isRemoteUpdate = false; 
         let lastKnownState = null;
+        let lastVideoUpdateTimestamp = null; // <- NUEVO: Evita reiniciar por culpa del chat
 
         function generateRoomCode() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -646,6 +647,15 @@
         function handleRemoteStateChange(data) {
             if (!isPlayerReady || !ytPlayer || !ytPlayer.getVideoData) return;
             
+            // PREVENCIÓN DE REINICIO POR CHAT/COLA:
+            // Comparamos si el cambio proviene de una actualización real del reproductor (updatedAt diferente)
+            // Si updatedAt es exactamente igual al último registrado, el video no cambió, solo cambió el chat o la cola.
+            if (data.updatedAt && data.updatedAt === lastVideoUpdateTimestamp) {
+                lastKnownState = data;
+                return; 
+            }
+            lastVideoUpdateTimestamp = data.updatedAt;
+
             // Si el cambio del REPRODUCTOR lo hicimos nosotros, lo ignoramos para evitar ecos
             if (data.updatedBy === currentUser.uid) {
                 lastKnownState = data;
@@ -677,7 +687,7 @@
 
         function leaveRoom() {
             if (unsubscribeRoom) { unsubscribeRoom(); unsubscribeRoom = null; }
-            currentRoomId = null; lastKnownState = null;
+            currentRoomId = null; lastKnownState = null; lastVideoUpdateTimestamp = null;
             if (isPlayerReady && ytPlayer) ytPlayer.stopVideo();
 
             els.roomActiveInfo.classList.add('hidden'); els.roomActiveInfo.classList.remove('flex');
@@ -732,7 +742,7 @@
         els.btnForceSync.addEventListener('click', () => {
             if (lastKnownState) {
                 showToast("Forzando sincronización...", "info");
-                handleRemoteStateChange({...lastKnownState, updatedBy: 'force'}); 
+                handleRemoteStateChange({...lastKnownState, updatedBy: 'force', updatedAt: Date.now()}); 
             } else if (isPlayerReady) {
                 const videoData = ytPlayer.getVideoData();
                 if (videoData && videoData.video_id) {
