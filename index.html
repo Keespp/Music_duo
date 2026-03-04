@@ -32,12 +32,17 @@
             to { transform: translateY(0); opacity: 1; }
         }
         .toast-enter { animation: slideIn 0.3s ease-out forwards; }
+        
+        /* Scrollbar para resultados */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col font-sans">
 
     <!-- Navbar -->
-    <nav class="bg-slate-900 border-b border-slate-800 p-4 shadow-md">
+    <nav class="bg-slate-900 border-b border-slate-800 p-4 shadow-md z-20">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2 text-indigo-400">
                 <i data-lucide="headphones" class="w-6 h-6"></i>
@@ -57,7 +62,7 @@
         <div class="bg-slate-800 rounded-xl p-5 shadow-lg border border-slate-700">
             <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
                 <i data-lucide="users" class="w-5 h-5 text-indigo-400"></i>
-                Sala de Escucha
+                Sala de Escucha Compartida
             </h2>
             
             <div id="roomSetup" class="flex flex-col sm:flex-row gap-3">
@@ -89,28 +94,38 @@
         </div>
 
         <!-- Reproductor y Controles (Oculto hasta entrar a una sala) -->
-        <div id="playerSection" class="hidden flex-col gap-4">
+        <div id="playerSection" class="hidden flex-col gap-4 relative">
             
-            <!-- Buscador / Cargar Video -->
-            <div class="bg-slate-800 p-2 rounded-lg flex gap-2 border border-slate-700 shadow-md focus-within:border-indigo-500 transition-colors">
-                <div class="pl-3 flex items-center text-slate-400">
-                    <i data-lucide="youtube" class="w-5 h-5"></i>
+            <!-- Buscador Integrado -->
+            <div class="relative z-10">
+                <div class="bg-slate-800 p-2 rounded-lg flex gap-2 border border-slate-700 shadow-md focus-within:border-indigo-500 transition-colors">
+                    <div class="pl-3 flex items-center text-slate-400">
+                        <i data-lucide="search" class="w-5 h-5"></i>
+                    </div>
+                    <input type="text" id="inputSearch" placeholder="Busca una canción o pega un enlace de YouTube..." class="flex-1 bg-transparent border-none outline-none text-white px-2 placeholder-slate-500">
+                    <button id="btnSearch" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-6 rounded-md font-medium transition disabled:opacity-50 flex items-center gap-2">
+                        Buscar
+                    </button>
                 </div>
-                <input type="text" id="inputVideoUrl" placeholder="Pega el enlace de YouTube aquí..." class="flex-1 bg-transparent border-none outline-none text-white px-2 placeholder-slate-500">
-                <button id="btnLoadVideo" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-6 rounded-md font-medium transition disabled:opacity-50">
-                    Cargar
-                </button>
+                
+                <!-- Resultados de búsqueda -->
+                <div id="searchResults" class="hidden absolute top-full left-0 w-full mt-2 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-80 overflow-y-auto custom-scrollbar flex-col divide-y divide-slate-700/50">
+                    <!-- Los resultados se inyectan aquí -->
+                </div>
             </div>
 
             <!-- Contenedor del reproductor de YouTube -->
-            <div class="yt-container shadow-2xl border border-slate-800">
+            <div class="yt-container shadow-2xl border border-slate-800 relative z-0">
                 <div id="youtubePlayer"></div>
             </div>
             
-            <div class="flex justify-between items-center text-sm text-slate-400 bg-slate-800 p-3 rounded-lg border border-slate-700">
-                <span class="flex items-center gap-1"><i data-lucide="info" class="w-4 h-4"></i> La reproducción se sincroniza automáticamente.</span>
-                <button id="btnForceSync" class="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition">
-                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Forzar Sincronización
+            <div class="flex flex-col sm:flex-row justify-between items-center text-sm text-slate-400 bg-slate-800 p-3 rounded-lg border border-slate-700 gap-3">
+                <span class="flex items-center gap-2 text-center sm:text-left">
+                    <i data-lucide="globe" class="w-4 h-4 text-indigo-400"></i> 
+                    Cualquiera en la sala puede buscar, cambiar y pausar la música.
+                </span>
+                <button id="btnForceSync" class="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition px-3 py-1 bg-indigo-900/30 rounded-full border border-indigo-900/50">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sincronizar
                 </button>
             </div>
         </div>
@@ -140,8 +155,9 @@
             btnCopyRoom: document.getElementById('btnCopyRoom'),
             btnLeaveRoom: document.getElementById('btnLeaveRoom'),
             playerSection: document.getElementById('playerSection'),
-            inputVideoUrl: document.getElementById('inputVideoUrl'),
-            btnLoadVideo: document.getElementById('btnLoadVideo'),
+            inputSearch: document.getElementById('inputSearch'),
+            btnSearch: document.getElementById('btnSearch'),
+            searchResults: document.getElementById('searchResults'),
             btnForceSync: document.getElementById('btnForceSync')
         };
 
@@ -178,17 +194,15 @@
             els.statusDot.className = isConnected ? 'w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 'w-2 h-2 rounded-full bg-slate-500';
         }
 
-        // --- Configuración e Inicialización de Firebase ---
-        // 🛑 ATENCIÓN: Si copias este código a tu computadora, Firebase requiere su configuración
-        // para poder sincronizar a los usuarios. Pega tu config de Firebase aquí:
+        // --- Configuración de Firebase (Tuya) ---
         const miConfiguracionFirebase = {
             apiKey: "AIzaSyCjmNEpGoQA1u252eQiVorYyOWe58MAPAE",
-  authDomain: "music-duo-feda5.firebaseapp.com",
-  databaseURL: "https://music-duo-feda5-default-rtdb.firebaseio.com",
-  projectId: "music-duo-feda5",
-  storageBucket: "music-duo-feda5.firebasestorage.app",
-  messagingSenderId: "161980222119",
-  appId: "1:161980222119:web:ad94af73947eefdffd6982"
+            authDomain: "music-duo-feda5.firebaseapp.com",
+            databaseURL: "https://music-duo-feda5-default-rtdb.firebaseio.com",
+            projectId: "music-duo-feda5",
+            storageBucket: "music-duo-feda5.firebasestorage.app",
+            messagingSenderId: "161980222119",
+            appId: "1:161980222119:web:ad94af73947eefdffd6982"
         };
 
         let firebaseConfig = Object.keys(miConfiguracionFirebase).length > 0 ? miConfiguracionFirebase : null;
@@ -197,26 +211,21 @@
                 firebaseConfig = JSON.parse(__firebase_config);
             }
         } catch (e) {
-            console.error("Error leyendo configuración de Firebase", e);
+            console.error("Error leyendo configuración local", e);
         }
         
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'syncmusic-app';
         
         let app, auth, db;
         try {
-            if (!firebaseConfig) throw new Error("No hay configuración de Firebase. El código fue copiado sin credenciales.");
+            if (!firebaseConfig) throw new Error("No config");
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
         } catch (error) {
-            console.error("Firebase no se pudo inicializar:", error.message);
-            updateConnectionStatus(false, "Falta Configuración Firebase");
+            console.error("Firebase error:", error.message);
+            updateConnectionStatus(false, "Falta Configuración");
             els.statusDot.className = 'w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]';
-            
-            setTimeout(() => {
-                showToast("Falta configuración de Firebase para uso local.", "error");
-                alert("¡Hola! Al copiar y pegar este archivo en tu PC, pierde la conexión a la base de datos de esta plataforma.\n\nPara que los botones funcionen y puedas sincronizar la música, necesitas:\n1. Crear un proyecto gratuito en Firebase.\n2. Copiar tu configuración de Firebase.\n3. Pegarla en la variable 'miConfiguracionFirebase' en el código fuente de este archivo.");
-            }, 1000);
         }
 
         // --- Variables de Estado Globales ---
@@ -225,7 +234,7 @@
         let unsubscribeRoom = null;
         let ytPlayer = null;
         let isPlayerReady = false;
-        let isRemoteUpdate = false; // Bandera para evitar bucles infinitos de eventos
+        let isRemoteUpdate = false; 
         let lastKnownState = null;
 
         function generateRoomCode() {
@@ -241,6 +250,90 @@
             return (match && match[7].length == 11) ? match[7] : false;
         }
 
+        // --- Lógica de Búsqueda (API Libre Piped) ---
+        async function performSearch(query) {
+            els.btnSearch.disabled = true;
+            els.btnSearch.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>';
+            lucide.createIcons();
+
+            try {
+                // Instancia pública de Piped (no requiere API key)
+                const res = await fetch(`https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(query)}&filter=music_songs`);
+                if (!res.ok) throw new Error("API Piped falló");
+                
+                const data = await res.json();
+                const videos = data.items.filter(item => item.type === 'stream').slice(0, 8); // Top 8 resultados
+                displaySearchResults(videos);
+            } catch (error) {
+                console.error("Error buscando:", error);
+                // Fallback a otra instancia si la primera falla
+                try {
+                    const res = await fetch(`https://pipedapi.adminforge.de/search?q=${encodeURIComponent(query)}&filter=all`);
+                    const data = await res.json();
+                    const videos = data.items.filter(item => item.type === 'stream').slice(0, 8);
+                    displaySearchResults(videos);
+                } catch (err2) {
+                    showToast("Error al buscar. Por favor pega un enlace de YouTube directamente.", "error");
+                    els.searchResults.classList.add('hidden');
+                }
+            } finally {
+                els.btnSearch.disabled = false;
+                els.btnSearch.innerHTML = 'Buscar';
+            }
+        }
+
+        function displaySearchResults(videos) {
+            els.searchResults.innerHTML = '';
+            
+            if (videos.length === 0) {
+                els.searchResults.innerHTML = '<div class="p-4 text-center text-slate-400">No se encontraron resultados.</div>';
+                els.searchResults.classList.remove('hidden');
+                return;
+            }
+
+            videos.forEach(video => {
+                const videoId = video.url.split('?v=')[1];
+                const div = document.createElement('div');
+                div.className = "flex items-center gap-3 p-3 hover:bg-slate-700 cursor-pointer transition";
+                div.innerHTML = `
+                    <div class="relative w-24 h-16 flex-shrink-0">
+                        <img src="${video.thumbnail}" class="w-full h-full object-cover rounded" alt="Miniatura">
+                        <span class="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1 rounded">${video.duration > 0 ? Math.floor(video.duration/60)+':'+(video.duration%60).toString().padStart(2,'0') : 'Live'}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-sm font-semibold text-white truncate" title="${video.title}">${video.title}</h4>
+                        <p class="text-xs text-slate-400 truncate">${video.uploaderName}</p>
+                    </div>
+                `;
+                
+                div.onclick = () => {
+                    els.searchResults.classList.add('hidden');
+                    els.inputSearch.value = ''; // Limpiar búsqueda
+                    loadAndSyncVideo(videoId);
+                };
+                
+                els.searchResults.appendChild(div);
+            });
+            
+            els.searchResults.classList.remove('hidden');
+        }
+
+        function loadAndSyncVideo(videoId) {
+            if (isPlayerReady && ytPlayer) {
+                // Al cargar un nuevo video, obligamos a reproducirlo y emitimos a Firestore
+                ytPlayer.loadVideoById(videoId);
+                updateRoomState(videoId, true, 0);
+                showToast("Canción seleccionada. Sincronizando para todos...", "success");
+            }
+        }
+
+        // Ocultar resultados si se hace click fuera
+        document.addEventListener('click', (e) => {
+            if (!els.inputSearch.contains(e.target) && !els.searchResults.contains(e.target)) {
+                els.searchResults.classList.add('hidden');
+            }
+        });
+
         // --- Lógica de Firebase Auth ---
         if (auth && db) {
             async function initAuth() {
@@ -251,8 +344,8 @@
                         await signInAnonymously(auth);
                     }
                 } catch (error) {
-                    console.error("Error de autenticación:", error);
-                    showToast("Error al conectar con el servidor.", "error");
+                    console.error("Auth error:", error);
+                    showToast("Error al conectar", "error");
                 }
             }
 
@@ -269,13 +362,10 @@
                     els.btnJoinRoom.disabled = true;
                 }
             });
-
-            // Iniciar Auth al cargar
             initAuth();
         }
 
         // --- Lógica de YouTube API ---
-        // Cargar script de IFrame API
         const tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         const firstScriptTag = document.getElementsByTagName('script')[0];
@@ -285,28 +375,26 @@
             ytPlayer = new YT.Player('youtubePlayer', {
                 height: '100%',
                 width: '100%',
-                videoId: '', // Empieza vacío
+                videoId: '', 
                 playerVars: {
                     'playsinline': 1,
-                    'controls': 1,
+                    'controls': 1, // Controles habilitados para todos
                     'disablekb': 0,
-                    'rel': 0
+                    'rel': 0,
+                    'autoplay': 1
                 },
                 events: {
-                    'onReady': onPlayerReady,
+                    'onReady': () => { isPlayerReady = true; },
                     'onStateChange': onPlayerStateChange
                 }
             });
         };
 
-        function onPlayerReady(event) {
-            isPlayerReady = true;
-        }
-
         function onPlayerStateChange(event) {
+            // Si la actualización viene de otro usuario, ignoramos el evento local para no crear un bucle
             if (!currentRoomId || !currentUser || isRemoteUpdate) return;
 
-            // YouTube Events: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
+            // Detectar PAUSA o PLAY generados por el usuario local
             if (event.data === YT.PlayerState.PLAYING || event.data === YT.PlayerState.PAUSED) {
                 const videoData = ytPlayer.getVideoData();
                 if (!videoData || !videoData.video_id) return;
@@ -314,6 +402,7 @@
                 const isPlaying = event.data === YT.PlayerState.PLAYING;
                 const currentTime = ytPlayer.getCurrentTime();
 
+                // Actualizar la base de datos (Esto impactará a los demás)
                 updateRoomState(videoData.video_id, isPlaying, currentTime);
             }
         }
@@ -321,16 +410,14 @@
         // --- Lógica de Salas (Firestore) ---
         async function updateRoomState(videoId, isPlaying, timestamp) {
             if (!currentRoomId || !currentUser) return;
-            
             try {
-                // REGLA 1: Path estricto para datos públicos
                 const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
                 await setDoc(roomRef, {
                     videoId: videoId,
                     isPlaying: isPlaying,
                     timestamp: timestamp,
                     updatedAt: Date.now(),
-                    updatedBy: currentUser.uid
+                    updatedBy: currentUser.uid // Identificador vital para saber quién hizo el cambio
                 }, { merge: true });
             } catch (error) {
                 console.error("Error actualizando estado:", error);
@@ -343,25 +430,23 @@
 
             currentRoomId = roomId.toUpperCase();
             
-            // Actualizar UI
             els.roomSetup.classList.add('hidden');
             els.roomActiveInfo.classList.remove('hidden');
             els.roomActiveInfo.classList.add('flex');
             els.displayRoomId.textContent = currentRoomId;
             els.playerSection.classList.remove('hidden');
             els.playerSection.classList.add('flex');
-            showToast(`Te has unido a la sala ${currentRoomId}`, 'success');
+            showToast(`Entraste a la sala ${currentRoomId}`, 'success');
 
-            // Suscribirse a cambios en Firestore
             const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
             
+            // Escuchar cambios de todos los demás en la sala
             unsubscribeRoom = onSnapshot(roomRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     handleRemoteStateChange(data);
                 }
             }, (error) => {
-                console.error("Error escuchando sala:", error);
                 showToast("Error de conexión con la sala.", "error");
             });
         }
@@ -369,34 +454,34 @@
         function handleRemoteStateChange(data) {
             if (!isPlayerReady || !ytPlayer || !ytPlayer.getVideoData) return;
             
-            // Prevenir eco de nuestros propios cambios
+            // Si el cambio lo hicimos NOSOTROS, lo ignoramos
             if (data.updatedBy === currentUser.uid) return;
             
             lastKnownState = data;
             
-            isRemoteUpdate = true; // Pausar eventos locales
+            // Bloquear emisión de eventos temporalmente para no re-enviar la orden
+            isRemoteUpdate = true; 
 
             try {
                 const currentVideoId = ytPlayer.getVideoData().video_id;
                 
-                // Si el video cambió, cargar el nuevo
+                // Si alguien más cambió la canción
                 if (data.videoId && currentVideoId !== data.videoId) {
                     if (data.isPlaying) {
                         ytPlayer.loadVideoById(data.videoId, data.timestamp);
                     } else {
                         ytPlayer.cueVideoById(data.videoId, data.timestamp);
                     }
+                    showToast("Alguien cambió la canción", "info");
                 } else if (data.videoId) {
-                    // Mismo video, verificar sincronización de tiempo y estado
+                    // Si alguien pausó, reanudó o adelantó la misma canción
                     const currentTime = ytPlayer.getCurrentTime() || 0;
                     const timeDiff = Math.abs(currentTime - data.timestamp);
                     
-                    // Si la diferencia de tiempo es mayor a 2 segundos, resincronizar
-                    if (timeDiff > 2) {
+                    if (timeDiff > 2.5) {
                         ytPlayer.seekTo(data.timestamp, true);
                     }
 
-                    // Sincronizar estado Play/Pause
                     if (data.isPlaying && ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
                         ytPlayer.playVideo();
                     } else if (!data.isPlaying && ytPlayer.getPlayerState() !== YT.PlayerState.PAUSED) {
@@ -407,7 +492,7 @@
                 console.error("Error aplicando estado remoto", e);
             }
 
-            // Liberar bandera después de un breve momento para permitir que los eventos de YT se procesen
+            // Liberar bloqueo después de procesar
             setTimeout(() => { isRemoteUpdate = false; }, 500);
         }
 
@@ -418,10 +503,7 @@
             }
             currentRoomId = null;
             lastKnownState = null;
-            
-            if (isPlayerReady && ytPlayer) {
-                ytPlayer.stopVideo();
-            }
+            if (isPlayerReady && ytPlayer) ytPlayer.stopVideo();
 
             els.roomActiveInfo.classList.add('hidden');
             els.roomActiveInfo.classList.remove('flex');
@@ -429,29 +511,18 @@
             els.playerSection.classList.remove('flex');
             els.roomSetup.classList.remove('hidden');
             els.inputRoomId.value = '';
-            showToast("Has salido de la sala", "info");
         }
 
         // --- Listeners de Eventos UI ---
         els.btnCreateRoom.addEventListener('click', () => {
-            if (!currentUser) {
-                showToast("No estás conectado al servidor.", "error");
-                return;
-            }
-            const newCode = generateRoomCode();
-            joinRoom(newCode);
+            if (!currentUser) return showToast("No conectado", "error");
+            joinRoom(generateRoomCode());
         });
 
         els.btnJoinRoom.addEventListener('click', () => {
-            if (!currentUser) {
-                showToast("No estás conectado al servidor.", "error");
-                return;
-            }
+            if (!currentUser) return showToast("No conectado", "error");
             const code = els.inputRoomId.value.trim();
-            if (code.length < 3) {
-                showToast("Ingresa un código válido", "error");
-                return;
-            }
+            if (code.length < 3) return showToast("Ingresa un código válido", "error");
             joinRoom(code);
         });
 
@@ -467,22 +538,20 @@
             showToast("Código copiado al portapapeles", "success");
         });
 
-        els.btnLoadVideo.addEventListener('click', () => {
-            const url = els.inputVideoUrl.value.trim();
-            if (!url) return;
+        // Evento del botón buscar
+        els.btnSearch.addEventListener('click', () => {
+            const query = els.inputSearch.value.trim();
+            if (!query) return;
 
-            const videoId = extractYouTubeID(url);
+            // Si es un enlace pegado directamente, sacamos el ID y lo tocamos
+            const videoId = extractYouTubeID(query);
             if (videoId) {
-                if (isPlayerReady) {
-                    els.inputVideoUrl.value = ''; // Limpiar input
-                    // Cargamos el video y lo pausamos para que el otro usuario lo reciba, 
-                    // o lo reproducimos directamente. Optamos por reproducirlo.
-                    ytPlayer.loadVideoById(videoId);
-                    updateRoomState(videoId, true, 0);
-                    showToast("Video cargado y enviando a la sala", "success");
-                }
+                els.searchResults.classList.add('hidden');
+                els.inputSearch.value = '';
+                loadAndSyncVideo(videoId);
             } else {
-                showToast("Enlace de YouTube no válido", "error");
+                // Si es texto, buscamos en la API
+                performSearch(query);
             }
         });
 
@@ -491,8 +560,8 @@
             if (e.key === 'Enter') els.btnJoinRoom.click();
         });
         
-        els.inputVideoUrl.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') els.btnLoadVideo.click();
+        els.inputSearch.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') els.btnSearch.click();
         });
 
         els.btnForceSync.addEventListener('click', () => {
@@ -500,7 +569,6 @@
                 showToast("Forzando sincronización...", "info");
                 handleRemoteStateChange({...lastKnownState, updatedBy: 'force'}); 
             } else if (isPlayerReady) {
-                // Si nosotros somos los que iniciamos, empujamos nuestro estado
                 const videoData = ytPlayer.getVideoData();
                 if (videoData && videoData.video_id) {
                     updateRoomState(
@@ -508,7 +576,7 @@
                         ytPlayer.getPlayerState() === YT.PlayerState.PLAYING, 
                         ytPlayer.getCurrentTime()
                     );
-                    showToast("Estado enviado a la sala", "success");
+                    showToast("Estado sincronizado con la sala", "success");
                 }
             }
         });
