@@ -61,12 +61,12 @@
             </h2>
             
             <div id="roomSetup" class="flex flex-col sm:flex-row gap-3">
-                <button id="btnCreateRoom" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition flex justify-center items-center gap-2 disabled:opacity-50">
+                <button id="btnCreateRoom" disabled class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     <i data-lucide="plus-circle" class="w-4 h-4"></i> Crear Nueva Sala
                 </button>
                 <div class="flex-1 flex gap-2">
                     <input type="text" id="inputRoomId" placeholder="Código de la sala..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 transition uppercase text-center font-mono">
-                    <button id="btnJoinRoom" class="bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-lg transition flex items-center gap-2 disabled:opacity-50">
+                    <button id="btnJoinRoom" disabled class="bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-lg transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         <i data-lucide="log-in" class="w-4 h-4"></i> Unirse
                     </button>
                 </div>
@@ -126,29 +126,6 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Configuración e Inicialización de Firebase ---
-        let firebaseConfig = {};
-        try {
-            firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        } catch (e) {
-            console.error("Error leyendo configuración de Firebase", e);
-        }
-        
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'syncmusic-app';
-        
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // --- Variables de Estado Globales ---
-        let currentUser = null;
-        let currentRoomId = null;
-        let unsubscribeRoom = null;
-        let ytPlayer = null;
-        let isPlayerReady = false;
-        let isRemoteUpdate = false; // Bandera para evitar bucles infinitos de eventos
-        let lastKnownState = null;
-
         // --- Elementos del DOM ---
         const els = {
             statusBadge: document.getElementById('statusBadge'),
@@ -201,6 +178,56 @@
             els.statusDot.className = isConnected ? 'w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 'w-2 h-2 rounded-full bg-slate-500';
         }
 
+        // --- Configuración e Inicialización de Firebase ---
+        // 🛑 ATENCIÓN: Si copias este código a tu computadora, Firebase requiere su configuración
+        // para poder sincronizar a los usuarios. Pega tu config de Firebase aquí:
+        const miConfiguracionFirebase = {
+            apiKey: "AIzaSyCjmNEpGoQA1u252eQiVorYyOWe58MAPAE",
+  authDomain: "music-duo-feda5.firebaseapp.com",
+  databaseURL: "https://music-duo-feda5-default-rtdb.firebaseio.com",
+  projectId: "music-duo-feda5",
+  storageBucket: "music-duo-feda5.firebasestorage.app",
+  messagingSenderId: "161980222119",
+  appId: "1:161980222119:web:ad94af73947eefdffd6982"
+        };
+
+        let firebaseConfig = Object.keys(miConfiguracionFirebase).length > 0 ? miConfiguracionFirebase : null;
+        try {
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                firebaseConfig = JSON.parse(__firebase_config);
+            }
+        } catch (e) {
+            console.error("Error leyendo configuración de Firebase", e);
+        }
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'syncmusic-app';
+        
+        let app, auth, db;
+        try {
+            if (!firebaseConfig) throw new Error("No hay configuración de Firebase. El código fue copiado sin credenciales.");
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (error) {
+            console.error("Firebase no se pudo inicializar:", error.message);
+            updateConnectionStatus(false, "Falta Configuración Firebase");
+            els.statusDot.className = 'w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]';
+            
+            setTimeout(() => {
+                showToast("Falta configuración de Firebase para uso local.", "error");
+                alert("¡Hola! Al copiar y pegar este archivo en tu PC, pierde la conexión a la base de datos de esta plataforma.\n\nPara que los botones funcionen y puedas sincronizar la música, necesitas:\n1. Crear un proyecto gratuito en Firebase.\n2. Copiar tu configuración de Firebase.\n3. Pegarla en la variable 'miConfiguracionFirebase' en el código fuente de este archivo.");
+            }, 1000);
+        }
+
+        // --- Variables de Estado Globales ---
+        let currentUser = null;
+        let currentRoomId = null;
+        let unsubscribeRoom = null;
+        let ytPlayer = null;
+        let isPlayerReady = false;
+        let isRemoteUpdate = false; // Bandera para evitar bucles infinitos de eventos
+        let lastKnownState = null;
+
         function generateRoomCode() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             let code = '';
@@ -215,35 +242,37 @@
         }
 
         // --- Lógica de Firebase Auth ---
-        async function initAuth() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
+        if (auth && db) {
+            async function initAuth() {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Error de autenticación:", error);
+                    showToast("Error al conectar con el servidor.", "error");
                 }
-            } catch (error) {
-                console.error("Error de autenticación:", error);
-                showToast("Error al conectar con el servidor.", "error");
             }
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    currentUser = user;
+                    updateConnectionStatus(true, "Conectado");
+                    els.btnCreateRoom.disabled = false;
+                    els.btnJoinRoom.disabled = false;
+                } else {
+                    currentUser = null;
+                    updateConnectionStatus(false, "Desconectado");
+                    els.btnCreateRoom.disabled = true;
+                    els.btnJoinRoom.disabled = true;
+                }
+            });
+
+            // Iniciar Auth al cargar
+            initAuth();
         }
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                updateConnectionStatus(true, "Conectado");
-                els.btnCreateRoom.disabled = false;
-                els.btnJoinRoom.disabled = false;
-            } else {
-                currentUser = null;
-                updateConnectionStatus(false, "Desconectado");
-                els.btnCreateRoom.disabled = true;
-                els.btnJoinRoom.disabled = true;
-            }
-        });
-
-        // Iniciar Auth al cargar
-        initAuth();
 
         // --- Lógica de YouTube API ---
         // Cargar script de IFrame API
@@ -405,11 +434,19 @@
 
         // --- Listeners de Eventos UI ---
         els.btnCreateRoom.addEventListener('click', () => {
+            if (!currentUser) {
+                showToast("No estás conectado al servidor.", "error");
+                return;
+            }
             const newCode = generateRoomCode();
             joinRoom(newCode);
         });
 
         els.btnJoinRoom.addEventListener('click', () => {
+            if (!currentUser) {
+                showToast("No estás conectado al servidor.", "error");
+                return;
+            }
             const code = els.inputRoomId.value.trim();
             if (code.length < 3) {
                 showToast("Ingresa un código válido", "error");
