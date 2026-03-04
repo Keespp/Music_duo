@@ -33,17 +33,17 @@
         }
         .toast-enter { animation: slideIn 0.3s ease-out forwards; }
         
-        /* Scrollbar para resultados */
+        /* Scrollbar para resultados y chat */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col font-sans">
+<body class="min-h-screen flex flex-col font-sans overflow-x-hidden">
 
     <!-- Navbar -->
-    <nav class="bg-slate-900 border-b border-slate-800 p-4 shadow-md z-20">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
+    <nav class="bg-slate-900 border-b border-slate-800 p-4 shadow-md z-20 sticky top-0">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2 text-indigo-400">
                 <i data-lucide="headphones" class="w-6 h-6"></i>
                 <h1 class="text-xl font-bold text-white">Sync<span class="text-indigo-400">Music</span></h1>
@@ -56,7 +56,7 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="flex-1 max-w-4xl w-full mx-auto p-4 flex flex-col gap-6 mt-4">
+    <main class="flex-1 max-w-6xl w-full mx-auto p-4 flex flex-col gap-6 mt-2">
         
         <!-- Controles de Sala -->
         <div class="bg-slate-800 rounded-xl p-5 shadow-lg border border-slate-700">
@@ -93,53 +93,100 @@
             </div>
         </div>
 
-        <!-- Reproductor y Controles (Oculto hasta entrar a una sala) -->
-        <div id="playerSection" class="hidden flex-col gap-4 relative">
+        <!-- Layout Principal (Oculto hasta entrar a una sala) -->
+        <div id="playerSection" class="hidden grid-cols-1 lg:grid-cols-3 gap-6 relative">
             
-            <!-- Buscador Integrado -->
-            <div class="relative z-10">
-                <div class="bg-slate-800 p-2 rounded-lg flex gap-2 border border-slate-700 shadow-md focus-within:border-indigo-500 transition-colors">
-                    <div class="pl-3 flex items-center text-slate-400">
-                        <i data-lucide="search" class="w-5 h-5"></i>
+            <!-- Columna Izquierda: Reproductor y Buscador -->
+            <div class="col-span-1 lg:col-span-2 flex flex-col gap-4">
+                
+                <!-- Buscador Integrado -->
+                <div class="relative z-10">
+                    <div class="bg-slate-800 p-2 rounded-lg flex gap-2 border border-slate-700 shadow-md focus-within:border-indigo-500 transition-colors">
+                        <div class="pl-3 flex items-center text-slate-400">
+                            <i data-lucide="search" class="w-5 h-5"></i>
+                        </div>
+                        <input type="text" id="inputSearch" placeholder="Busca una canción o pega un enlace..." class="flex-1 bg-transparent border-none outline-none text-white px-2 placeholder-slate-500">
+                        <button id="btnSearch" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-6 rounded-md font-medium transition disabled:opacity-50 flex items-center gap-2">
+                            Buscar
+                        </button>
                     </div>
-                    <input type="text" id="inputSearch" placeholder="Busca una canción o pega un enlace de YouTube..." class="flex-1 bg-transparent border-none outline-none text-white px-2 placeholder-slate-500">
-                    <button id="btnSearch" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-6 rounded-md font-medium transition disabled:opacity-50 flex items-center gap-2">
-                        Buscar
-                    </button>
+                    
+                    <!-- Resultados de búsqueda -->
+                    <div id="searchResults" class="hidden absolute top-full left-0 w-full mt-2 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-96 overflow-y-auto custom-scrollbar flex-col divide-y divide-slate-700/50">
+                        <!-- Los resultados se inyectan aquí -->
+                    </div>
+                </div>
+
+                <!-- Contenedor del reproductor de YouTube -->
+                <div class="yt-container shadow-2xl border border-slate-800 relative z-0">
+                    <div id="youtubePlayer"></div>
                 </div>
                 
-                <!-- Resultados de búsqueda -->
-                <div id="searchResults" class="hidden absolute top-full left-0 w-full mt-2 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-80 overflow-y-auto custom-scrollbar flex-col divide-y divide-slate-700/50">
-                    <!-- Los resultados se inyectan aquí -->
+                <div class="flex flex-col sm:flex-row justify-between items-center text-sm text-slate-400 bg-slate-800 p-3 rounded-lg border border-slate-700 gap-3">
+                    <span class="flex items-center gap-2 text-center sm:text-left">
+                        <i data-lucide="globe" class="w-4 h-4 text-indigo-400"></i> 
+                        Sincronización en tiempo real habilitada.
+                    </span>
+                    <button id="btnForceSync" class="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition px-3 py-1 bg-indigo-900/30 rounded-full border border-indigo-900/50">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Forzar Sincronización
+                    </button>
                 </div>
             </div>
 
-            <!-- Contenedor del reproductor de YouTube -->
-            <div class="yt-container shadow-2xl border border-slate-800 relative z-0">
-                <div id="youtubePlayer"></div>
+            <!-- Columna Derecha: Cola y Chat -->
+            <div class="col-span-1 flex flex-col gap-4 h-[600px] lg:h-auto">
+                
+                <!-- Pestañas Cola / Chat -->
+                <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 flex flex-col flex-1 overflow-hidden">
+                    
+                    <div class="flex border-b border-slate-700 bg-slate-900/50">
+                        <button id="tabQueue" class="flex-1 py-3 text-sm font-medium text-indigo-400 border-b-2 border-indigo-500 flex justify-center items-center gap-2">
+                            <i data-lucide="list-music" class="w-4 h-4"></i> Cola
+                        </button>
+                        <button id="tabChat" class="flex-1 py-3 text-sm font-medium text-slate-400 hover:text-slate-200 flex justify-center items-center gap-2">
+                            <i data-lucide="message-square" class="w-4 h-4"></i> Chat
+                        </button>
+                    </div>
+
+                    <!-- Panel: Cola de Reproducción -->
+                    <div id="panelQueue" class="flex-1 overflow-y-auto custom-scrollbar p-2 flex flex-col gap-2 relative">
+                        <!-- La cola se inyecta aquí -->
+                        <div id="emptyQueueMsg" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-sm p-4 text-center">
+                            <i data-lucide="music" class="w-8 h-8 mb-2 opacity-50"></i>
+                            La cola está vacía.<br>Busca una canción y añádela.
+                        </div>
+                    </div>
+
+                    <!-- Panel: Chat -->
+                    <div id="panelChat" class="hidden flex-1 flex-col overflow-hidden bg-slate-900/30 relative">
+                        <div id="chatMessages" class="flex-1 overflow-y-auto custom-scrollbar p-3 flex flex-col gap-3">
+                            <!-- Los mensajes se inyectan aquí -->
+                        </div>
+                        <div class="p-3 bg-slate-800 border-t border-slate-700">
+                            <form id="chatForm" class="flex gap-2">
+                                <input type="text" id="inputChat" placeholder="Escribe un mensaje..." class="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 text-white" autocomplete="off">
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded transition">
+                                    <i data-lucide="send" class="w-4 h-4"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
             </div>
-            
-            <div class="flex flex-col sm:flex-row justify-between items-center text-sm text-slate-400 bg-slate-800 p-3 rounded-lg border border-slate-700 gap-3">
-                <span class="flex items-center gap-2 text-center sm:text-left">
-                    <i data-lucide="globe" class="w-4 h-4 text-indigo-400"></i> 
-                    Cualquiera en la sala puede buscar, cambiar y pausar la música.
-                </span>
-                <button id="btnForceSync" class="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition px-3 py-1 bg-indigo-900/30 rounded-full border border-indigo-900/50">
-                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sincronizar
-                </button>
-            </div>
+
         </div>
 
     </main>
 
-    <!-- Contenedor de Toasts (Notificaciones) -->
+    <!-- Contenedor de Toasts -->
     <div id="toastContainer" class="fixed bottom-4 right-4 flex flex-col gap-2 z-50"></div>
 
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Elementos del DOM ---
         const els = {
@@ -158,7 +205,15 @@
             inputSearch: document.getElementById('inputSearch'),
             btnSearch: document.getElementById('btnSearch'),
             searchResults: document.getElementById('searchResults'),
-            btnForceSync: document.getElementById('btnForceSync')
+            btnForceSync: document.getElementById('btnForceSync'),
+            tabQueue: document.getElementById('tabQueue'),
+            tabChat: document.getElementById('tabChat'),
+            panelQueue: document.getElementById('panelQueue'),
+            panelChat: document.getElementById('panelChat'),
+            emptyQueueMsg: document.getElementById('emptyQueueMsg'),
+            chatMessages: document.getElementById('chatMessages'),
+            chatForm: document.getElementById('chatForm'),
+            inputChat: document.getElementById('inputChat')
         };
 
         // Inicializar iconos
@@ -194,6 +249,23 @@
             els.statusDot.className = isConnected ? 'w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 'w-2 h-2 rounded-full bg-slate-500';
         }
 
+        // Cambio de Pestañas (Cola / Chat)
+        els.tabQueue.addEventListener('click', () => {
+            els.panelQueue.classList.remove('hidden');
+            els.panelChat.classList.add('hidden');
+            els.panelChat.classList.remove('flex');
+            els.tabQueue.className = "flex-1 py-3 text-sm font-medium text-indigo-400 border-b-2 border-indigo-500 flex justify-center items-center gap-2";
+            els.tabChat.className = "flex-1 py-3 text-sm font-medium text-slate-400 hover:text-slate-200 flex justify-center items-center gap-2";
+        });
+        els.tabChat.addEventListener('click', () => {
+            els.panelQueue.classList.add('hidden');
+            els.panelChat.classList.remove('hidden');
+            els.panelChat.classList.add('flex');
+            els.tabChat.className = "flex-1 py-3 text-sm font-medium text-indigo-400 border-b-2 border-indigo-500 flex justify-center items-center gap-2";
+            els.tabQueue.className = "flex-1 py-3 text-sm font-medium text-slate-400 hover:text-slate-200 flex justify-center items-center gap-2";
+            els.chatMessages.scrollTop = els.chatMessages.scrollHeight; // Auto-scroll
+        });
+
         // --- Configuración de Firebase (Tuya) ---
         const miConfiguracionFirebase = {
             apiKey: "AIzaSyCjmNEpGoQA1u252eQiVorYyOWe58MAPAE",
@@ -207,15 +279,10 @@
 
         let firebaseConfig = Object.keys(miConfiguracionFirebase).length > 0 ? miConfiguracionFirebase : null;
         try {
-            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                firebaseConfig = JSON.parse(__firebase_config);
-            }
-        } catch (e) {
-            console.error("Error leyendo configuración local", e);
-        }
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) firebaseConfig = JSON.parse(__firebase_config);
+        } catch (e) { console.error(e); }
         
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'syncmusic-app';
-        
         let app, auth, db;
         try {
             if (!firebaseConfig) throw new Error("No config");
@@ -223,13 +290,13 @@
             auth = getAuth(app);
             db = getFirestore(app);
         } catch (error) {
-            console.error("Firebase error:", error.message);
             updateConnectionStatus(false, "Falta Configuración");
             els.statusDot.className = 'w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]';
         }
 
         // --- Variables de Estado Globales ---
         let currentUser = null;
+        let username = "Anónimo";
         let currentRoomId = null;
         let unsubscribeRoom = null;
         let ytPlayer = null;
@@ -251,44 +318,34 @@
         }
 
         // --- Configuración API de YouTube ---
-        // Pega tu API Key de YouTube aquí dentro de las comillas
         const YOUTUBE_API_KEY = "AIzaSyDTNEawkTGfUwuImfTaDUmHqE6plo4FYnE";
 
-        // --- Lógica de Búsqueda (API Oficial de YouTube) ---
+        // --- Lógica de Búsqueda ---
         async function performSearch(query) {
             if (!YOUTUBE_API_KEY || YOUTUBE_API_KEY === "TU_API_KEY_DE_YOUTUBE_AQUI") {
-                showToast("Por favor, configura tu API Key de YouTube en el código.", "error");
-                return;
+                showToast("Por favor, configura tu API Key de YouTube.", "error"); return;
             }
 
             els.btnSearch.disabled = true;
             els.btnSearch.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>';
             lucide.createIcons();
 
-            const encodedQuery = encodeURIComponent(query);
-            const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=8&q=${encodedQuery}&type=video&key=${YOUTUBE_API_KEY}`;
+            const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=8&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`;
 
             try {
                 const res = await fetch(url);
-                if (!res.ok) {
-                    const errData = await res.json();
-                    throw new Error(errData.error?.message || "Error en la API de YouTube");
-                }
-                
+                if (!res.ok) throw new Error((await res.json()).error?.message || "Error API");
                 const data = await res.json();
                 
                 const videos = data.items.map(item => ({
                     id: item.id.videoId,
-                    // Decodificar entidades HTML simples que a veces trae YouTube en los títulos
                     title: item.snippet.title.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&#39;/g, "'"),
                     uploaderName: item.snippet.channelTitle,
                     thumbnail: item.snippet.thumbnails.medium.url,
-                    duration: 0 // La API de búsqueda básica no devuelve la duración
+                    duration: 0
                 }));
-
                 displaySearchResults(videos);
             } catch (err) {
-                console.error("Error buscando en YouTube:", err);
                 showToast("Error al buscar: " + err.message, "error");
                 els.searchResults.classList.add('hidden');
             } finally {
@@ -299,50 +356,168 @@
 
         function displaySearchResults(videos) {
             els.searchResults.innerHTML = '';
-            
             if (videos.length === 0) {
-                els.searchResults.innerHTML = '<div class="p-4 text-center text-slate-400">No se encontraron resultados.</div>';
+                els.searchResults.innerHTML = '<div class="p-4 text-center text-slate-400">Sin resultados.</div>';
                 els.searchResults.classList.remove('hidden');
                 return;
             }
 
             videos.forEach(video => {
-                const videoId = video.id;
                 const div = document.createElement('div');
-                div.className = "flex items-center gap-3 p-3 hover:bg-slate-700 cursor-pointer transition";
+                div.className = "flex items-center gap-3 p-3 hover:bg-slate-700 transition group relative";
                 div.innerHTML = `
-                    <div class="relative w-24 h-16 flex-shrink-0">
+                    <div class="relative w-24 h-16 flex-shrink-0 cursor-pointer" onclick="loadAndSyncVideo('${video.id}')">
                         <img src="${video.thumbnail}" class="w-full h-full object-cover rounded" alt="Miniatura">
-                        <span class="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1 rounded">${video.duration > 0 ? Math.floor(video.duration/60)+':'+(video.duration%60).toString().padStart(2,'0') : 'Video'}</span>
+                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded">
+                            <i data-lucide="play" class="w-6 h-6 text-white"></i>
+                        </div>
                     </div>
-                    <div class="flex-1 min-w-0">
+                    <div class="flex-1 min-w-0 pr-10 cursor-pointer" onclick="loadAndSyncVideo('${video.id}')">
                         <h4 class="text-sm font-semibold text-white truncate" title="${video.title.replace(/"/g, '&quot;')}">${video.title}</h4>
                         <p class="text-xs text-slate-400 truncate">${video.uploaderName}</p>
                     </div>
+                    <!-- Botones Rápidos -->
+                    <div class="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition flex gap-1 bg-slate-800 p-1 rounded shadow-lg border border-slate-600">
+                        <button class="bg-indigo-600 hover:bg-indigo-500 p-1.5 rounded text-white transition tooltip" title="Reproducir ahora" onclick="loadAndSyncVideo('${video.id}')">
+                            <i data-lucide="play" class="w-4 h-4"></i>
+                        </button>
+                        <button class="bg-slate-600 hover:bg-slate-500 p-1.5 rounded text-white transition tooltip" title="Añadir a la cola" id="btnQ-${video.id}">
+                            <i data-lucide="list-plus" class="w-4 h-4"></i>
+                        </button>
+                    </div>
                 `;
-                
-                div.onclick = () => {
-                    els.searchResults.classList.add('hidden');
-                    els.inputSearch.value = ''; // Limpiar búsqueda
-                    loadAndSyncVideo(videoId);
-                };
-                
                 els.searchResults.appendChild(div);
+
+                // Agregar evento para el botón de cola
+                setTimeout(() => {
+                    document.getElementById(`btnQ-${video.id}`).addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        enqueueVideo(video);
+                        els.searchResults.classList.add('hidden');
+                        els.inputSearch.value = '';
+                    });
+                }, 0);
             });
-            
+            lucide.createIcons({ root: els.searchResults });
             els.searchResults.classList.remove('hidden');
         }
 
-        function loadAndSyncVideo(videoId) {
-            if (isPlayerReady && ytPlayer) {
-                // Al cargar un nuevo video, obligamos a reproducirlo y emitimos a Firestore
-                ytPlayer.loadVideoById(videoId);
-                updateRoomState(videoId, true, 0);
-                showToast("Canción seleccionada. Sincronizando para todos...", "success");
+        // --- Lógica de la Cola y Chat (Firestore) ---
+        async function enqueueVideo(video) {
+            if (!currentRoomId || !currentUser) return;
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+            try {
+                // Añadir video a la cola en Firestore
+                await updateDoc(roomRef, {
+                    queue: arrayUnion(video)
+                });
+                showToast("Añadido a la cola", "success");
+            } catch (error) {
+                console.error("Error al añadir a la cola", error);
             }
         }
 
-        // Ocultar resultados si se hace click fuera
+        async function removeQueueItem(video) {
+            if (!currentRoomId || !currentUser) return;
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+            try {
+                await updateDoc(roomRef, {
+                    queue: arrayRemove(video)
+                });
+            } catch (error) { console.error(error); }
+        }
+
+        async function sendChatMessage(text) {
+            if (!currentRoomId || !currentUser || !text.trim()) return;
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+            const msg = {
+                id: Date.now().toString() + Math.floor(Math.random()*100),
+                user: username,
+                text: text.trim(),
+                time: Date.now()
+            };
+            try {
+                await updateDoc(roomRef, { chat: arrayUnion(msg) });
+            } catch (error) { console.error(error); }
+        }
+
+        // Renders visuales
+        function renderQueue(queueArray) {
+            if (!queueArray || queueArray.length === 0) {
+                els.emptyQueueMsg.style.display = 'flex';
+                // Borrar items excepto el mensaje vacío
+                Array.from(els.panelQueue.children).forEach(child => {
+                    if(child.id !== 'emptyQueueMsg') child.remove();
+                });
+                return;
+            }
+            
+            els.emptyQueueMsg.style.display = 'none';
+            // Limpiar
+            Array.from(els.panelQueue.children).forEach(child => {
+                if(child.id !== 'emptyQueueMsg') child.remove();
+            });
+
+            queueArray.forEach((video, index) => {
+                const div = document.createElement('div');
+                div.className = "flex items-center gap-3 bg-slate-900/50 p-2 rounded border border-slate-700/50 group";
+                div.innerHTML = `
+                    <span class="text-xs font-bold text-slate-500 w-4 text-center">${index + 1}</span>
+                    <img src="${video.thumbnail}" class="w-12 h-8 object-cover rounded">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm text-white truncate">${video.title}</p>
+                        <p class="text-[10px] text-slate-400 truncate">${video.uploaderName}</p>
+                    </div>
+                    <button class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 p-1 transition" id="rmQ-${video.id}-${index}" title="Eliminar">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                `;
+                els.panelQueue.appendChild(div);
+
+                setTimeout(() => {
+                    document.getElementById(`rmQ-${video.id}-${index}`).addEventListener('click', () => removeQueueItem(video));
+                }, 0);
+            });
+            lucide.createIcons({ root: els.panelQueue });
+        }
+
+        function renderChat(chatArray) {
+            els.chatMessages.innerHTML = '';
+            if(!chatArray) return;
+            
+            // Mostrar últimos 50 mensajes
+            const visibleChat = chatArray.slice(-50);
+            
+            visibleChat.forEach(msg => {
+                const isMe = msg.user === username;
+                const div = document.createElement('div');
+                div.className = `flex flex-col max-w-[85%] ${isMe ? 'self-end items-end' : 'self-start items-start'}`;
+                
+                const timeStr = new Date(msg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                
+                div.innerHTML = `
+                    <span class="text-[10px] text-slate-400 mb-0.5 px-1">${isMe ? 'Tú' : msg.user} • ${timeStr}</span>
+                    <div class="px-3 py-2 rounded-lg text-sm ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-700 text-slate-100 rounded-tl-none'} break-words">
+                        ${msg.text}
+                    </div>
+                `;
+                els.chatMessages.appendChild(div);
+            });
+            // Auto scroll down
+            els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+        }
+
+        // --- Player logic ---
+        function loadAndSyncVideo(videoId) {
+            if (isPlayerReady && ytPlayer) {
+                els.searchResults.classList.add('hidden');
+                els.inputSearch.value = '';
+                ytPlayer.loadVideoById(videoId);
+                updateRoomState(videoId, true, 0);
+                showToast("Canción seleccionada", "success");
+            }
+        }
+
         document.addEventListener('click', (e) => {
             if (!els.inputSearch.contains(e.target) && !els.searchResults.contains(e.target)) {
                 els.searchResults.classList.add('hidden');
@@ -358,15 +533,13 @@
                     } else {
                         await signInAnonymously(auth);
                     }
-                } catch (error) {
-                    console.error("Auth error:", error);
-                    showToast("Error al conectar", "error");
-                }
+                } catch (error) { showToast("Error al conectar", "error"); }
             }
 
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     currentUser = user;
+                    username = "Usuario_" + user.uid.substring(0,4); // Asignar nombre automático
                     updateConnectionStatus(true, "Conectado");
                     els.btnCreateRoom.disabled = false;
                     els.btnJoinRoom.disabled = false;
@@ -388,16 +561,8 @@
 
         window.onYouTubeIframeAPIReady = function() {
             ytPlayer = new YT.Player('youtubePlayer', {
-                height: '100%',
-                width: '100%',
-                videoId: '', 
-                playerVars: {
-                    'playsinline': 1,
-                    'controls': 1, // Controles habilitados para todos
-                    'disablekb': 0,
-                    'rel': 0,
-                    'autoplay': 1
-                },
+                height: '100%', width: '100%', videoId: '', 
+                playerVars: { 'playsinline': 1, 'controls': 1, 'disablekb': 0, 'rel': 0, 'autoplay': 1 },
                 events: {
                     'onReady': () => { isPlayerReady = true; },
                     'onStateChange': onPlayerStateChange
@@ -406,37 +571,43 @@
         };
 
         function onPlayerStateChange(event) {
-            // Si la actualización viene de otro usuario, ignoramos el evento local para no crear un bucle
+            // Reproducción automática de la cola al terminar la canción
+            if (event.data === YT.PlayerState.ENDED) {
+                if (lastKnownState && lastKnownState.queue && lastKnownState.queue.length > 0) {
+                    const nextVideo = lastKnownState.queue[0];
+                    const newQueue = lastKnownState.queue.slice(1); // Quitar el primero
+                    updateRoomState(nextVideo.id, true, 0, newQueue);
+                }
+                return;
+            }
+
             if (!currentRoomId || !currentUser || isRemoteUpdate) return;
 
-            // Detectar PAUSA o PLAY generados por el usuario local
             if (event.data === YT.PlayerState.PLAYING || event.data === YT.PlayerState.PAUSED) {
                 const videoData = ytPlayer.getVideoData();
                 if (!videoData || !videoData.video_id) return;
-
                 const isPlaying = event.data === YT.PlayerState.PLAYING;
-                const currentTime = ytPlayer.getCurrentTime();
-
-                // Actualizar la base de datos (Esto impactará a los demás)
-                updateRoomState(videoData.video_id, isPlaying, currentTime);
+                updateRoomState(videoData.video_id, isPlaying, ytPlayer.getCurrentTime());
             }
         }
 
         // --- Lógica de Salas (Firestore) ---
-        async function updateRoomState(videoId, isPlaying, timestamp) {
+        async function updateRoomState(videoId, isPlaying, timestamp, overrideQueue = null) {
             if (!currentRoomId || !currentUser) return;
             try {
                 const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
-                await setDoc(roomRef, {
+                const payload = {
                     videoId: videoId,
                     isPlaying: isPlaying,
                     timestamp: timestamp,
                     updatedAt: Date.now(),
-                    updatedBy: currentUser.uid // Identificador vital para saber quién hizo el cambio
-                }, { merge: true });
-            } catch (error) {
-                console.error("Error actualizando estado:", error);
-            }
+                    updatedBy: currentUser.uid
+                };
+                if (overrideQueue !== null) payload.queue = overrideQueue;
+                
+                // Usamos merge:true para no sobreescribir el chat o la cola si no la enviamos
+                await setDoc(roomRef, payload, { merge: true });
+            } catch (error) { console.error("Error actualizando estado:", error); }
         }
 
         function joinRoom(roomId) {
@@ -450,15 +621,21 @@
             els.roomActiveInfo.classList.add('flex');
             els.displayRoomId.textContent = currentRoomId;
             els.playerSection.classList.remove('hidden');
-            els.playerSection.classList.add('flex');
+            els.playerSection.classList.add('grid');
             showToast(`Entraste a la sala ${currentRoomId}`, 'success');
 
             const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
             
-            // Escuchar cambios de todos los demás en la sala
+            // Escuchar cambios de la sala (Cola, Chat, y Reproductor)
             unsubscribeRoom = onSnapshot(roomRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
+                    
+                    // 1. Actualizar UI de la Cola y el Chat para todos
+                    renderQueue(data.queue || []);
+                    renderChat(data.chat || []);
+
+                    // 2. Procesar el estado del video
                     handleRemoteStateChange(data);
                 }
             }, (error) => {
@@ -469,63 +646,43 @@
         function handleRemoteStateChange(data) {
             if (!isPlayerReady || !ytPlayer || !ytPlayer.getVideoData) return;
             
-            // Si el cambio lo hicimos NOSOTROS, lo ignoramos
-            if (data.updatedBy === currentUser.uid) return;
+            // Si el cambio del REPRODUCTOR lo hicimos nosotros, lo ignoramos para evitar ecos
+            if (data.updatedBy === currentUser.uid) {
+                lastKnownState = data;
+                return;
+            }
             
             lastKnownState = data;
-            
-            // Bloquear emisión de eventos temporalmente para no re-enviar la orden
             isRemoteUpdate = true; 
 
             try {
                 const currentVideoId = ytPlayer.getVideoData().video_id;
                 
-                // Si alguien más cambió la canción
                 if (data.videoId && currentVideoId !== data.videoId) {
-                    if (data.isPlaying) {
-                        ytPlayer.loadVideoById(data.videoId, data.timestamp);
-                    } else {
-                        ytPlayer.cueVideoById(data.videoId, data.timestamp);
-                    }
-                    showToast("Alguien cambió la canción", "info");
+                    if (data.isPlaying) ytPlayer.loadVideoById(data.videoId, data.timestamp);
+                    else ytPlayer.cueVideoById(data.videoId, data.timestamp);
                 } else if (data.videoId) {
-                    // Si alguien pausó, reanudó o adelantó la misma canción
                     const currentTime = ytPlayer.getCurrentTime() || 0;
                     const timeDiff = Math.abs(currentTime - data.timestamp);
                     
-                    if (timeDiff > 2.5) {
-                        ytPlayer.seekTo(data.timestamp, true);
-                    }
+                    if (timeDiff > 2.5) ytPlayer.seekTo(data.timestamp, true);
 
-                    if (data.isPlaying && ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
-                        ytPlayer.playVideo();
-                    } else if (!data.isPlaying && ytPlayer.getPlayerState() !== YT.PlayerState.PAUSED) {
-                        ytPlayer.pauseVideo();
-                    }
+                    if (data.isPlaying && ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) ytPlayer.playVideo();
+                    else if (!data.isPlaying && ytPlayer.getPlayerState() !== YT.PlayerState.PAUSED) ytPlayer.pauseVideo();
                 }
-            } catch (e) {
-                console.error("Error aplicando estado remoto", e);
-            }
+            } catch (e) {}
 
-            // Liberar bloqueo después de procesar
             setTimeout(() => { isRemoteUpdate = false; }, 500);
         }
 
         function leaveRoom() {
-            if (unsubscribeRoom) {
-                unsubscribeRoom();
-                unsubscribeRoom = null;
-            }
-            currentRoomId = null;
-            lastKnownState = null;
+            if (unsubscribeRoom) { unsubscribeRoom(); unsubscribeRoom = null; }
+            currentRoomId = null; lastKnownState = null;
             if (isPlayerReady && ytPlayer) ytPlayer.stopVideo();
 
-            els.roomActiveInfo.classList.add('hidden');
-            els.roomActiveInfo.classList.remove('flex');
-            els.playerSection.classList.add('hidden');
-            els.playerSection.classList.remove('flex');
-            els.roomSetup.classList.remove('hidden');
-            els.inputRoomId.value = '';
+            els.roomActiveInfo.classList.add('hidden'); els.roomActiveInfo.classList.remove('flex');
+            els.playerSection.classList.add('hidden'); els.playerSection.classList.remove('grid');
+            els.roomSetup.classList.remove('hidden'); els.inputRoomId.value = '';
         }
 
         // --- Listeners de Eventos UI ---
@@ -544,39 +701,32 @@
         els.btnLeaveRoom.addEventListener('click', leaveRoom);
 
         els.btnCopyRoom.addEventListener('click', () => {
-            const tempInput = document.createElement('input');
-            tempInput.value = currentRoomId;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-            showToast("Código copiado al portapapeles", "success");
+            const tempInput = document.createElement('input'); tempInput.value = currentRoomId;
+            document.body.appendChild(tempInput); tempInput.select(); document.execCommand('copy');
+            document.body.removeChild(tempInput); showToast("Código copiado al portapapeles", "success");
         });
 
-        // Evento del botón buscar
         els.btnSearch.addEventListener('click', () => {
             const query = els.inputSearch.value.trim();
             if (!query) return;
-
-            // Si es un enlace pegado directamente, sacamos el ID y lo tocamos
             const videoId = extractYouTubeID(query);
             if (videoId) {
-                els.searchResults.classList.add('hidden');
-                els.inputSearch.value = '';
+                els.searchResults.classList.add('hidden'); els.inputSearch.value = '';
                 loadAndSyncVideo(videoId);
-            } else {
-                // Si es texto, buscamos en la API
-                performSearch(query);
-            }
+            } else { performSearch(query); }
         });
 
-        // Permitir Enter en inputs
-        els.inputRoomId.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') els.btnJoinRoom.click();
-        });
-        
-        els.inputSearch.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') els.btnSearch.click();
+        els.inputRoomId.addEventListener('keypress', (e) => { if (e.key === 'Enter') els.btnJoinRoom.click(); });
+        els.inputSearch.addEventListener('keypress', (e) => { if (e.key === 'Enter') els.btnSearch.click(); });
+
+        // Evento Enviar Chat
+        els.chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = els.inputChat.value;
+            if (text) {
+                sendChatMessage(text);
+                els.inputChat.value = '';
+            }
         });
 
         els.btnForceSync.addEventListener('click', () => {
@@ -586,12 +736,8 @@
             } else if (isPlayerReady) {
                 const videoData = ytPlayer.getVideoData();
                 if (videoData && videoData.video_id) {
-                    updateRoomState(
-                        videoData.video_id, 
-                        ytPlayer.getPlayerState() === YT.PlayerState.PLAYING, 
-                        ytPlayer.getCurrentTime()
-                    );
-                    showToast("Estado sincronizado con la sala", "success");
+                    updateRoomState(videoData.video_id, ytPlayer.getPlayerState() === YT.PlayerState.PLAYING, ytPlayer.getCurrentTime());
+                    showToast("Estado sincronizado", "success");
                 }
             }
         });
