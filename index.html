@@ -479,10 +479,7 @@
         // --- FUNCION DE SALTAR A LA SIGUIENTE CANCION ---
         els.btnSkipNext.addEventListener('click', () => {
             if (!currentRoomId || !currentUser) return;
-            if (lastKnownState && lastKnownState.queue && lastKnownState.queue.length > 0) {
-                const nextVideo = lastKnownState.queue[0];
-                const newQueue = lastKnownState.queue.slice(1); // Remover el primer elemento
-                updateRoomState(nextVideo.id, true, 0, newQueue);
+            if (playNextFromQueue()) {
                 showToast("Saltando a la siguiente canción", "info");
             } else {
                 showToast("No hay más canciones en la cola", "error");
@@ -503,7 +500,6 @@
         els.inputUsername.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') els.btnSaveName.click();
         });
-
 
         async function sendChatMessage(text) {
             if (!currentRoomId || !currentUser || !text.trim()) return;
@@ -638,6 +634,23 @@
         }
 
         // --- Player logic ---
+        function playNextFromQueue() {
+            if (lastKnownState && lastKnownState.queue && lastKnownState.queue.length > 0) {
+                const nextVideo = lastKnownState.queue[0];
+                const newQueue = lastKnownState.queue.slice(1); 
+                
+                // 1. Reproducir localmente primero para no quedarse trabado
+                if (isPlayerReady && ytPlayer) {
+                    ytPlayer.loadVideoById(nextVideo.id);
+                }
+                
+                // 2. Actualizar a los demás
+                updateRoomState(nextVideo.id, true, 0, newQueue);
+                return true;
+            }
+            return false;
+        }
+
         function loadAndSyncVideo(videoId) {
             if (isPlayerReady && ytPlayer) {
                 els.searchResults.classList.add('hidden');
@@ -707,11 +720,7 @@
         function onPlayerStateChange(event) {
             // Reproducción automática de la cola al terminar la canción
             if (event.data === YT.PlayerState.ENDED) {
-                if (lastKnownState && lastKnownState.queue && lastKnownState.queue.length > 0) {
-                    const nextVideo = lastKnownState.queue[0];
-                    const newQueue = lastKnownState.queue.slice(1); // Quitar el primero
-                    updateRoomState(nextVideo.id, true, 0, newQueue);
-                }
+                playNextFromQueue();
                 return;
             }
 
