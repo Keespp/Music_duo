@@ -465,15 +465,6 @@
             els.unreadBadge.textContent = '0';
         });
 
-        // Habilitar/Deshabilitar botones de sala según el nombre
-        els.initialUsername.addEventListener('input', () => {
-            const hasName = els.initialUsername.value.trim().length > 0;
-            if (currentUser) {
-                els.btnCreateRoom.disabled = !hasName;
-                els.btnJoinRoom.disabled = !hasName;
-            }
-        });
-
         // Toggle Modo Teatro
         let isTheaterMode = false;
         els.btnTheaterMode.addEventListener('click', () => {
@@ -1087,10 +1078,9 @@
                 if (user) {
                     currentUser = user;
                     updateConnectionStatus(true, "Conectado");
-                    // Los botones se activan solo si escribiste un nombre
-                    const hasName = els.initialUsername.value.trim().length > 0;
-                    els.btnCreateRoom.disabled = !hasName;
-                    els.btnJoinRoom.disabled = !hasName;
+                    // Los botones se activan automáticamente al conectar para evitar que parezcan dañados
+                    els.btnCreateRoom.disabled = false;
+                    els.btnJoinRoom.disabled = false;
                 } else {
                     currentUser = null;
                     updateConnectionStatus(false, "Desconectado");
@@ -1302,15 +1292,24 @@
         // --- Listeners de Eventos UI ---
         els.btnCreateRoom.addEventListener('click', () => {
             if (!currentUser) return showToast("No conectado", "error");
-            if (!els.initialUsername.value.trim()) return showToast("Ingresa tu nombre", "error");
+            if (!els.initialUsername.value.trim()) {
+                els.initialUsername.focus();
+                return showToast("¡Primero ingresa tu nombre!", "error");
+            }
             joinRoom(generateRoomCode());
         });
 
         els.btnJoinRoom.addEventListener('click', () => {
             if (!currentUser) return showToast("No conectado", "error");
-            if (!els.initialUsername.value.trim()) return showToast("Ingresa tu nombre", "error");
+            if (!els.initialUsername.value.trim()) {
+                els.initialUsername.focus();
+                return showToast("¡Primero ingresa tu nombre!", "error");
+            }
             const code = els.inputRoomId.value.trim();
-            if (code.length < 3) return showToast("Ingresa un código válido", "error");
+            if (code.length < 3) {
+                els.inputRoomId.focus();
+                return showToast("Ingresa un código de sala válido", "error");
+            }
             joinRoom(code);
         });
 
