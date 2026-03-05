@@ -111,17 +111,17 @@
 
             <!-- Información de la sala activa -->
             <div id="roomActiveInfo" class="hidden flex-col gap-3">
-                <div class="flex flex-col sm:flex-row items-center justify-between bg-slate-900 p-4 rounded-lg border border-slate-700">
+                <div class="flex flex-col sm:flex-row items-center justify-between bg-black/20 p-5 rounded-2xl border border-white/5">
                     <div class="flex flex-col">
-                        <span class="text-xs text-slate-400">Estás en la sala:</span>
-                        <span id="displayRoomId" class="text-xl font-mono font-bold tracking-wider text-indigo-400">---</span>
+                        <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Estás en la sala</span>
+                        <span id="displayRoomId" class="text-4xl font-mono font-bold tracking-widest text-gradient">---</span>
                     </div>
-                    <div class="flex gap-2 mt-3 sm:mt-0">
-                        <button id="btnCopyRoom" class="bg-slate-700 hover:bg-slate-600 text-white py-1.5 px-3 rounded text-sm transition flex items-center gap-2">
-                            <i data-lucide="copy" class="w-4 h-4"></i> Copiar Código
+                    <div class="flex gap-2 mt-4 sm:mt-0">
+                        <button id="btnCopyRoom" class="bg-white/10 hover:bg-white/20 border border-white/10 text-white py-1.5 px-3 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
                         </button>
-                        <button id="btnLeaveRoom" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 py-1.5 px-3 rounded text-sm transition flex items-center gap-2 border border-red-500/20">
-                            <i data-lucide="log-out" class="w-4 h-4"></i> Salir
+                        <button id="btnLeaveRoom" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 py-1.5 px-3 rounded-lg text-xs font-medium transition flex items-center gap-1.5 border border-red-500/20">
+                            <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Salir
                         </button>
                     </div>
                 </div>
@@ -137,37 +137,43 @@
         </div>
 
         <!-- Layout Principal (Oculto hasta entrar a una sala) -->
-        <div id="playerSection" class="hidden grid-cols-1 lg:grid-cols-3 gap-6 relative">
+        <div id="playerSection" class="hidden grid-cols-1 lg:grid-cols-3 gap-8 relative">
             
             <!-- Columna Izquierda: Reproductor y Buscador -->
-            <div class="col-span-1 lg:col-span-2 flex flex-col gap-4">
+            <div class="col-span-1 lg:col-span-2 flex flex-col gap-6">
                 
                 <!-- Buscador Integrado -->
-                <div class="relative z-10">
-                    <div class="bg-slate-800 p-2 rounded-lg flex gap-2 border border-slate-700 shadow-md focus-within:border-indigo-500 transition-colors">
-                        <div class="pl-3 flex items-center text-slate-400">
-                            <i data-lucide="search" class="w-5 h-5"></i>
+                <div class="relative z-50">
+                    <div class="glass-panel p-2 rounded-2xl flex gap-2 focus-within:ring-2 focus-within:ring-purple-500/50 transition-all shadow-lg">
+                        <div class="pl-4 flex items-center text-slate-400">
+                            <i data-lucide="search" class="w-5 h-5 text-indigo-400"></i>
                         </div>
-                        <input type="text" id="inputSearch" placeholder="Busca, pega un enlace de video o de playlist..." class="flex-1 bg-transparent border-none outline-none text-white px-2 placeholder-slate-500">
-                        <button id="btnSearch" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-6 rounded-md font-medium transition disabled:opacity-50 flex items-center gap-2">
+                        <input type="text" id="inputSearch" placeholder="Busca una canción, pega enlace de video o playlist..." class="flex-1 bg-transparent border-none outline-none text-white px-2 placeholder-slate-500 font-medium">
+                        <button id="btnSearch" class="btn-gradient text-white py-3 px-8 rounded-xl font-bold transition flex items-center gap-2 disabled:opacity-50">
                             Buscar
                         </button>
                     </div>
                     
                     <!-- Resultados de búsqueda -->
-                    <div id="searchResults" class="hidden absolute top-full left-0 w-full mt-2 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-96 overflow-y-auto custom-scrollbar flex-col divide-y divide-slate-700/50">
+                    <div id="searchResults" class="hidden absolute top-full left-0 w-full mt-3 bg-[#0f172a]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl max-h-96 overflow-y-auto custom-scrollbar flex-col divide-y divide-white/5 overflow-hidden z-50">
                         <!-- Los resultados se inyectan aquí -->
                     </div>
                 </div>
 
                 <!-- Info Reproduciendo Ahora -->
-                <div class="bg-indigo-900/40 border border-indigo-500/30 p-3 rounded-lg flex items-center gap-3">
-                    <div class="bg-indigo-600/20 p-2 rounded-full animate-pulse">
-                        <i data-lucide="music" class="text-indigo-400 w-5 h-5"></i>
+                <div class="glass-panel p-4 rounded-2xl flex items-center gap-4 relative overflow-hidden group border border-indigo-500/20">
+                    <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-50 group-hover:opacity-100 transition duration-500"></div>
+                    <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-xl shadow-lg shadow-purple-500/20 relative z-10 animate-pulse">
+                        <i data-lucide="music" class="text-white w-6 h-6"></i>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <span class="text-indigo-300 text-[10px] uppercase font-bold tracking-wider">Reproduciendo ahora</span>
-                        <p id="nowPlayingText" class="text-white font-medium truncate text-sm">Esperando canción...</p>
+                    <div class="flex-1 min-w-0 relative z-10 flex flex-col justify-center">
+                        <span class="text-indigo-300 text-[10px] uppercase font-bold tracking-widest mb-1 block">Reproduciendo ahora</span>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <p id="nowPlayingText" class="text-white font-bold truncate text-base lg:text-lg drop-shadow-md">Esperando canción...</p>
+                            <span id="nowPlayingAddedBy" class="hidden text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm bg-white/10 text-slate-200 border border-white/5 flex items-center gap-1 whitespace-nowrap">
+                                <i data-lucide="user" class="w-3 h-3 text-indigo-400"></i> <span id="nowPlayingAddedByName"></span>
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -291,6 +297,8 @@
             btnSearch: document.getElementById('btnSearch'),
             searchResults: document.getElementById('searchResults'),
             nowPlayingText: document.getElementById('nowPlayingText'),
+            nowPlayingAddedBy: document.getElementById('nowPlayingAddedBy'),
+            nowPlayingAddedByName: document.getElementById('nowPlayingAddedByName'),
             btnForceSync: document.getElementById('btnForceSync'),
             btnSkipNext: document.getElementById('btnSkipNext'),
             tabQueue: document.getElementById('tabQueue'),
@@ -334,9 +342,9 @@
         function updateConnectionStatus(isConnected, text) {
             els.statusText.textContent = text;
             els.statusBadge.className = isConnected 
-                ? 'px-3 py-1 rounded-full text-xs font-semibold bg-green-900/50 text-green-400 flex items-center gap-2 border border-green-800/50'
-                : 'px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 flex items-center gap-2 border border-slate-700';
-            els.statusDot.className = isConnected ? 'w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 'w-2 h-2 rounded-full bg-slate-500';
+                ? 'px-4 py-1.5 rounded-full text-xs font-bold bg-green-500/20 text-green-300 flex items-center gap-2 border border-green-500/30 shadow-[0_0_10px_rgba(34,197,94,0.2)]'
+                : 'px-4 py-1.5 rounded-full text-xs font-bold bg-black/30 text-slate-400 flex items-center gap-2 border border-white/5';
+            els.statusDot.className = isConnected ? 'w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'w-2 h-2 rounded-full bg-slate-500';
         }
 
         // Cambio de Pestañas (Cola / Chat)
@@ -344,15 +352,15 @@
             els.panelQueue.classList.remove('hidden');
             els.panelChat.classList.add('hidden');
             els.panelChat.classList.remove('flex');
-            els.tabQueue.className = "flex-1 py-3 text-sm font-medium text-indigo-400 border-b-2 border-indigo-500 flex justify-center items-center gap-2";
-            els.tabChat.className = "flex-1 py-3 text-sm font-medium text-slate-400 hover:text-slate-200 flex justify-center items-center gap-2";
+            els.tabQueue.className = "flex-1 py-4 text-sm font-bold text-white border-b-2 border-purple-500 flex justify-center items-center gap-2 bg-white/5 transition";
+            els.tabChat.className = "flex-1 py-4 text-sm font-semibold text-slate-400 hover:text-slate-200 flex justify-center items-center gap-2 transition";
         });
         els.tabChat.addEventListener('click', () => {
             els.panelQueue.classList.add('hidden');
             els.panelChat.classList.remove('hidden');
             els.panelChat.classList.add('flex');
-            els.tabChat.className = "flex-1 py-3 text-sm font-medium text-indigo-400 border-b-2 border-indigo-500 flex justify-center items-center gap-2";
-            els.tabQueue.className = "flex-1 py-3 text-sm font-medium text-slate-400 hover:text-slate-200 flex justify-center items-center gap-2";
+            els.tabChat.className = "flex-1 py-4 text-sm font-bold text-white border-b-2 border-purple-500 flex justify-center items-center gap-2 bg-white/5 transition";
+            els.tabQueue.className = "flex-1 py-4 text-sm font-semibold text-slate-400 hover:text-slate-200 flex justify-center items-center gap-2 transition";
             els.chatMessages.scrollTop = els.chatMessages.scrollHeight; // Auto-scroll
         });
 
@@ -508,35 +516,35 @@
         function displaySearchResults(videos) {
             els.searchResults.innerHTML = '';
             if (videos.length === 0) {
-                els.searchResults.innerHTML = '<div class="p-4 text-center text-slate-400">Sin resultados.</div>';
+                els.searchResults.innerHTML = '<div class="p-6 text-center text-slate-400 font-medium">Sin resultados.</div>';
                 els.searchResults.classList.remove('hidden');
                 return;
             }
 
             videos.forEach(video => {
                 const div = document.createElement('div');
-                div.className = "flex items-center gap-3 p-3 hover:bg-slate-700 transition group relative";
+                div.className = "flex items-center gap-4 p-4 hover:bg-white/10 transition group relative border-b border-white/5 last:border-0";
                 
                 // Escapar comillas dobles para pasar el título de forma segura
                 const safeTitle = video.title.replace(/"/g, '&quot;').replace(/'/g, "\\'");
 
                 div.innerHTML = `
-                    <div class="relative w-24 h-16 flex-shrink-0 cursor-pointer" onclick="loadAndSyncVideo('${video.id}', '${safeTitle}')">
-                        <img src="${video.thumbnail}" class="w-full h-full object-cover rounded" alt="Miniatura">
-                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded">
-                            <i data-lucide="play" class="w-6 h-6 text-white"></i>
+                    <div class="relative w-28 h-16 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg shadow-md" onclick="loadAndSyncVideo('${video.id}', '${safeTitle}')">
+                        <img src="${video.thumbnail}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" alt="Miniatura">
+                        <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300">
+                            <i data-lucide="play" class="w-8 h-8 text-white drop-shadow-lg"></i>
                         </div>
                     </div>
-                    <div class="flex-1 min-w-0 pr-10 cursor-pointer" onclick="loadAndSyncVideo('${video.id}', '${safeTitle}')">
-                        <h4 class="text-sm font-semibold text-white truncate" title="${video.title.replace(/"/g, '&quot;')}">${video.title}</h4>
-                        <p class="text-xs text-slate-400 truncate">${video.uploaderName}</p>
+                    <div class="flex-1 min-w-0 pr-12 cursor-pointer" onclick="loadAndSyncVideo('${video.id}', '${safeTitle}')">
+                        <h4 class="text-sm font-bold text-white truncate drop-shadow-sm mb-1" title="${video.title.replace(/"/g, '&quot;')}">${video.title}</h4>
+                        <p class="text-xs text-slate-400 truncate flex items-center gap-1"><i data-lucide="youtube" class="w-3 h-3"></i> ${video.uploaderName}</p>
                     </div>
                     <!-- Botones Rápidos -->
-                    <div class="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition flex gap-1 bg-slate-800 p-1 rounded shadow-lg border border-slate-600">
-                        <button class="bg-indigo-600 hover:bg-indigo-500 p-1.5 rounded text-white transition tooltip" title="Reproducir ahora" onclick="loadAndSyncVideo('${video.id}', '${safeTitle}')">
-                            <i data-lucide="play" class="w-4 h-4"></i>
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 flex gap-2">
+                        <button class="bg-indigo-500 hover:bg-indigo-400 p-2.5 rounded-xl text-white transition shadow-lg tooltip hover:scale-110" title="Reproducir ahora" onclick="loadAndSyncVideo('${video.id}', '${safeTitle}')">
+                            <i data-lucide="play" class="w-4 h-4 fill-current"></i>
                         </button>
-                        <button class="bg-slate-600 hover:bg-slate-500 p-1.5 rounded text-white transition tooltip" title="Añadir a la cola" id="btnQ-${video.id}">
+                        <button class="bg-white/10 hover:bg-white/20 p-2.5 rounded-xl text-white transition shadow-lg tooltip border border-white/10 hover:scale-110" title="Añadir a la cola" id="btnQ-${video.id}">
                             <i data-lucide="list-plus" class="w-4 h-4"></i>
                         </button>
                     </div>
@@ -560,18 +568,20 @@
         // --- Lógica de la Cola y Chat (Firestore) ---
         async function enqueueVideo(video) {
             if (!currentRoomId || !currentUser) return;
+            const videoWithUser = { ...video, addedBy: username };
             const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
             try {
-                await updateDoc(roomRef, { queue: arrayUnion(video) });
+                await updateDoc(roomRef, { queue: arrayUnion(videoWithUser) });
                 showToast("Añadido a la cola", "success");
             } catch (error) { console.error("Error al añadir a la cola", error); }
         }
 
         async function enqueuePlaylist(videosArray) {
             if (!currentRoomId || !currentUser || !videosArray.length) return;
+            const videosWithUser = videosArray.map(v => ({ ...v, addedBy: username }));
             const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
             try {
-                await updateDoc(roomRef, { queue: arrayUnion(...videosArray) });
+                await updateDoc(roomRef, { queue: arrayUnion(...videosWithUser) });
             } catch (error) { console.error("Error al añadir playlist a la cola", error); }
         }
 
@@ -677,7 +687,7 @@
             
             el.innerHTML = `
                 <span class="text-4xl drop-shadow-lg">${emoji}</span>
-                <span class="text-[10px] bg-black/60 px-1.5 py-0.5 rounded text-white mt-1 font-medium tracking-wide shadow-md whitespace-nowrap">${userName}</span>
+                <span class="text-[10px] bg-black/60 px-2 py-0.5 rounded-md text-white mt-1 font-bold tracking-wider shadow-md whitespace-nowrap">${userName}</span>
             `;
             
             overlay.appendChild(el);
@@ -699,21 +709,25 @@
 
             queueArray.forEach((video, index) => {
                 const div = document.createElement('div');
-                div.className = "flex items-center gap-3 bg-slate-900/50 p-2 rounded border border-slate-700/50 group cursor-grab active:cursor-grabbing hover:bg-slate-800 transition";
+                div.className = "flex items-center gap-3 bg-black/20 p-2.5 rounded-xl border border-white/5 group cursor-grab active:cursor-grabbing hover:bg-white/5 transition shadow-sm";
                 div.draggable = true;
                 
                 div.innerHTML = `
-                    <div class="cursor-grab text-slate-500 hover:text-slate-300 px-1 tooltip" title="Arrastra para reordenar">
-                        <i data-lucide="grip-vertical" class="w-4 h-4"></i>
+                    <div class="cursor-grab text-slate-500 hover:text-slate-300 px-1 tooltip transition" title="Arrastra para reordenar">
+                        <i data-lucide="grip-vertical" class="w-5 h-5"></i>
                     </div>
-                    <span class="text-xs font-bold text-slate-500 w-4 text-center">${index + 1}</span>
-                    <img src="${video.thumbnail}" class="w-12 h-8 object-cover rounded pointer-events-none">
-                    <div class="flex-1 min-w-0 pointer-events-none">
-                        <p class="text-sm text-white truncate">${video.title}</p>
-                        <p class="text-[10px] text-slate-400 truncate">${video.uploaderName}</p>
+                    <span class="text-[10px] font-bold text-slate-400 w-5 text-center bg-black/30 rounded-md py-1">${index + 1}</span>
+                    <div class="relative w-16 h-10 overflow-hidden rounded-md pointer-events-none shadow-md">
+                        <img src="${video.thumbnail}" class="w-full h-full object-cover">
                     </div>
-                    <button class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 p-1 transition tooltip" title="Eliminar de la cola" id="rmQ-${video.id}-${index}">
-                        <i data-lucide="x" class="w-4 h-4"></i>
+                    <div class="flex-1 min-w-0 pointer-events-none pl-1">
+                        <p class="text-sm font-bold text-white truncate">${video.title}</p>
+                        <p class="text-[10px] text-slate-400 truncate mt-0.5 flex items-center gap-1 font-medium">
+                            <i data-lucide="user" class="w-3 h-3"></i> ${video.addedBy || 'Anónimo'}
+                        </p>
+                    </div>
+                    <button class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 p-2 hover:bg-red-500/10 rounded-lg transition tooltip" title="Eliminar de la cola" id="rmQ-${video.id}-${index}">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 `;
                 
@@ -763,13 +777,13 @@
             visibleChat.forEach(msg => {
                 const isMe = msg.user === username;
                 const div = document.createElement('div');
-                div.className = `flex flex-col max-w-[85%] ${isMe ? 'self-end items-end' : 'self-start items-start'}`;
+                div.className = `flex flex-col max-w-[85%] ${isMe ? 'self-end items-end' : 'self-start items-start'} mb-1`;
                 
                 const timeStr = new Date(msg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 
                 div.innerHTML = `
-                    <span class="text-[10px] text-slate-400 mb-0.5 px-1">${isMe ? 'Tú' : msg.user} • ${timeStr}</span>
-                    <div class="px-3 py-2 rounded-lg text-sm ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-700 text-slate-100 rounded-tl-none'} break-words">
+                    <span class="text-[9px] font-bold text-slate-400 mb-1 px-1 uppercase tracking-wider">${isMe ? 'Tú' : msg.user} • ${timeStr}</span>
+                    <div class="px-4 py-2.5 rounded-2xl text-sm shadow-md ${isMe ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-tr-sm font-medium' : 'bg-white/10 border border-white/5 text-slate-100 rounded-tl-sm font-medium'} break-words">
                         ${msg.text}
                     </div>
                 `;
@@ -786,7 +800,7 @@
             users.forEach((name, idx) => {
                 const isMe = name === username;
                 const span = document.createElement('span');
-                span.className = `text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${isMe ? 'bg-indigo-900/50 text-indigo-300 border border-indigo-700/50' : 'bg-slate-800 text-slate-300 border border-slate-600'}`;
+                span.className = `text-[11px] px-3 py-1 rounded-full font-bold whitespace-nowrap shadow-sm transition-all tracking-wide ${isMe ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-purple-500/20' : 'bg-white/10 text-slate-200 border border-white/5'}`;
                 span.textContent = isMe ? 'Tú' : name;
                 els.connectedUsersList.appendChild(span);
             });
@@ -802,7 +816,7 @@
                     ytPlayer.loadVideoById(nextVideo.id);
                 }
                 
-                updateRoomState(nextVideo.id, true, 0, newQueue, nextVideo.title);
+                updateRoomState(nextVideo.id, true, 0, newQueue, nextVideo.title, nextVideo.addedBy || username);
                 return true;
             }
             return false;
@@ -813,7 +827,7 @@
                 els.searchResults.classList.add('hidden');
                 els.inputSearch.value = '';
                 ytPlayer.loadVideoById(videoId);
-                updateRoomState(videoId, true, 0, null, title);
+                updateRoomState(videoId, true, 0, null, title, username);
                 showToast("Canción seleccionada", "success");
             }
         }
@@ -889,13 +903,14 @@
                 const isPlaying = event.data === YT.PlayerState.PLAYING;
                 // Intentamos sacar el título desde el reproductor, si no existe lo dejamos nulo para no sobrescribirlo
                 const title = videoData.title || null;
+                const currentAddedBy = lastKnownState ? lastKnownState.addedBy : username;
                 
-                updateRoomState(videoData.video_id, isPlaying, ytPlayer.getCurrentTime(), null, title);
+                updateRoomState(videoData.video_id, isPlaying, ytPlayer.getCurrentTime(), null, title, currentAddedBy);
             }
         }
 
         // --- Lógica de Salas (Firestore) ---
-        async function updateRoomState(videoId, isPlaying, timestamp, overrideQueue = null, videoTitle = null) {
+        async function updateRoomState(videoId, isPlaying, timestamp, overrideQueue = null, videoTitle = null, addedBy = null) {
             if (!currentRoomId || !currentUser) return;
             try {
                 const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
@@ -908,6 +923,7 @@
                 };
                 if (overrideQueue !== null) payload.queue = overrideQueue;
                 if (videoTitle !== null) payload.videoTitle = videoTitle;
+                if (addedBy !== null) payload.addedBy = addedBy;
                 
                 await setDoc(roomRef, payload, { merge: true });
             } catch (error) { console.error("Error actualizando estado:", error); }
@@ -949,6 +965,15 @@
                     if (data.videoTitle) {
                         els.nowPlayingText.textContent = data.videoTitle;
                         els.nowPlayingText.title = data.videoTitle; // tooltip
+                        if (data.addedBy) {
+                            els.nowPlayingAddedBy.classList.remove('hidden');
+                            els.nowPlayingAddedByName.textContent = data.addedBy;
+                        } else {
+                            els.nowPlayingAddedBy.classList.add('hidden');
+                        }
+                    } else {
+                        els.nowPlayingText.textContent = "Esperando canción...";
+                        els.nowPlayingAddedBy.classList.add('hidden');
                     }
 
                     if (data.latestReaction && data.latestReaction.id !== lastReactionId) {
@@ -1017,6 +1042,7 @@
             els.playerSection.classList.add('hidden'); els.playerSection.classList.remove('grid');
             els.roomSetup.classList.remove('hidden'); els.inputRoomId.value = '';
             els.nowPlayingText.textContent = "Esperando canción...";
+            els.nowPlayingAddedBy.classList.add('hidden');
         }
 
         // Escuchar cuando el usuario cierra la pestaña para borrarlo de la lista
@@ -1092,7 +1118,8 @@
             } else if (isPlayerReady) {
                 const videoData = ytPlayer.getVideoData();
                 if (videoData && videoData.video_id) {
-                    updateRoomState(videoData.video_id, ytPlayer.getPlayerState() === YT.PlayerState.PLAYING, ytPlayer.getCurrentTime(), null, videoData.title);
+                    const currentAddedBy = lastKnownState ? lastKnownState.addedBy : username;
+                    updateRoomState(videoData.video_id, ytPlayer.getPlayerState() === YT.PlayerState.PLAYING, ytPlayer.getCurrentTime(), null, videoData.title, currentAddedBy);
                     showToast("Estado sincronizado", "success");
                 }
             }
