@@ -9,13 +9,60 @@
     <!-- Iconos Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { background-color: #0f172a; color: #f8fafc; }
+        /* Tipografía moderna de Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+        
+        body { 
+            font-family: 'Outfit', sans-serif;
+            background-color: #050505; 
+            /* Fondo con luces sutiles */
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(79, 70, 229, 0.12), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.12), transparent 25%);
+            background-attachment: fixed;
+            color: #f8fafc; 
+        }
+
+        /* Clases personalizadas de diseño (Glassmorphism & Gradients) */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-input {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-input:focus {
+            border-color: #a855f7;
+            box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
+            outline: none;
+        }
+        .btn-gradient {
+            background: linear-gradient(135deg, #4f46e5, #9333ea);
+            transition: all 0.3s ease;
+        }
+        .btn-gradient:hover:not(:disabled) {
+            box-shadow: 0 10px 20px -5px rgba(147, 51, 234, 0.4);
+            transform: translateY(-1px);
+        }
+        .btn-gradient:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #818cf8, #c084fc);
+        }
+
         .yt-container {
             position: relative;
             padding-bottom: 56.25%; /* 16:9 aspect ratio */
             height: 0;
             overflow: hidden;
-            border-radius: 0.5rem;
             background: #000;
         }
         .yt-container iframe {
@@ -26,6 +73,7 @@
             height: 100%;
             border: 0;
         }
+        
         /* Toast animaciones */
         @keyframes slideIn {
             from { transform: translateY(100%); opacity: 0; }
@@ -33,10 +81,11 @@
         }
         .toast-enter { animation: slideIn 0.3s ease-out forwards; }
         
-        /* Scrollbar para resultados y chat */
+        /* Scrollbar suave */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
         /* Animación de Reacciones Flotantes */
         @keyframes floatUp {
@@ -55,24 +104,30 @@
             flex-direction: column;
             align-items: center;
         }
-
-        /* Estilo para arrastrar elementos en la cola */
         .dragging {
             opacity: 0.5;
-            background-color: #334155 !important;
+            background-color: rgba(255,255,255,0.1) !important;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col font-sans overflow-x-hidden">
+<body class="min-h-screen flex flex-col font-sans overflow-x-hidden relative">
+
+    <!-- Efecto de luces de fondo extra -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-[-1]">
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-600/10 blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/10 blur-[120px]"></div>
+    </div>
 
     <!-- Navbar -->
-    <nav class="bg-slate-900 border-b border-slate-800 p-4 shadow-md z-20 sticky top-0">
+    <nav class="glass-panel border-b-0 border-white/5 p-4 shadow-lg z-20 sticky top-0">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2 text-indigo-400">
-                <i data-lucide="headphones" class="w-6 h-6"></i>
-                <h1 class="text-xl font-bold text-white">Sync<span class="text-indigo-400">Music</span></h1>
+            <div class="flex items-center gap-2">
+                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-2 rounded-xl shadow-lg shadow-purple-500/20">
+                    <i data-lucide="headphones" class="w-6 h-6 text-white"></i>
+                </div>
+                <h1 class="text-2xl font-bold tracking-tight text-white">Sync<span class="text-gradient">Music</span></h1>
             </div>
-            <div id="statusBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 flex items-center gap-2 transition-colors">
+            <div id="statusBadge" class="px-4 py-1.5 rounded-full text-xs font-semibold bg-black/30 text-slate-300 flex items-center gap-2 border border-white/5 backdrop-blur-md transition-colors shadow-inner">
                 <span class="w-2 h-2 rounded-full bg-slate-500" id="statusDot"></span>
                 <span id="statusText">Conectando...</span>
             </div>
@@ -80,55 +135,57 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="flex-1 max-w-6xl w-full mx-auto p-4 flex flex-col gap-6 mt-2">
+    <main class="flex-1 max-w-6xl w-full mx-auto p-4 flex flex-col gap-8 mt-4 z-10">
         
         <!-- Controles de Sala -->
-        <div class="bg-slate-800 rounded-xl p-5 shadow-lg border border-slate-700">
-            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                <i data-lucide="users" class="w-5 h-5 text-indigo-400"></i>
+        <div class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl">
+            <h2 class="text-2xl font-bold mb-6 flex items-center gap-2 text-white">
+                <i data-lucide="users" class="w-6 h-6 text-indigo-400"></i>
                 Sala de Escucha Compartida
             </h2>
             
-            <div id="roomSetup" class="flex flex-col gap-4">
+            <div id="roomSetup" class="flex flex-col gap-5">
                 <!-- Solicitud de Nombre de Usuario antes de entrar -->
-                <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700">
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Ingresa tu nombre para entrar:</label>
-                    <input type="text" id="initialUsername" placeholder="Ej. Juan..." class="w-full md:w-1/2 bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 text-white transition">
+                <div class="bg-black/20 p-5 rounded-2xl border border-white/5">
+                    <label class="block text-sm font-semibold text-slate-300 mb-2">¿Cómo te llamas?</label>
+                    <input type="text" id="initialUsername" placeholder="Ingresa tu nombre para entrar..." class="w-full md:w-1/2 glass-input rounded-xl px-4 py-3 text-white transition focus:ring-2 focus:ring-purple-500/50">
                 </div>
 
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <button id="btnCreateRoom" disabled class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Crear Nueva Sala
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button id="btnCreateRoom" disabled class="flex-1 btn-gradient text-white font-semibold py-3 px-4 rounded-xl flex justify-center items-center gap-2">
+                        <i data-lucide="plus-circle" class="w-5 h-5"></i> Crear Nueva Sala
                     </button>
                     <div class="flex-1 flex gap-2">
-                        <input type="text" id="inputRoomId" placeholder="Código de la sala..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 transition uppercase text-center font-mono text-white">
-                        <button id="btnJoinRoom" disabled class="bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-lg transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <i data-lucide="log-in" class="w-4 h-4"></i> Unirse
+                        <input type="text" id="inputRoomId" placeholder="Código de la sala..." class="w-full glass-input rounded-xl px-4 py-3 uppercase text-center font-mono font-bold text-white tracking-widest">
+                        <button id="btnJoinRoom" disabled class="bg-white/10 hover:bg-white/20 border border-white/10 text-white font-semibold py-3 px-6 rounded-xl transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i data-lucide="log-in" class="w-5 h-5"></i> Unirse
                         </button>
                     </div>
                 </div>
             </div>
 
             <!-- Información de la sala activa -->
-            <div id="roomActiveInfo" class="hidden flex-col gap-3">
+            <div id="roomActiveInfo" class="hidden flex-col gap-4">
                 <div class="flex flex-col sm:flex-row items-center justify-between bg-black/20 p-5 rounded-2xl border border-white/5">
                     <div class="flex flex-col">
                         <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Estás en la sala</span>
                         <span id="displayRoomId" class="text-4xl font-mono font-bold tracking-widest text-gradient">---</span>
                     </div>
-                    <div class="flex gap-2 mt-4 sm:mt-0">
-                        <button id="btnCopyRoom" class="bg-white/10 hover:bg-white/20 border border-white/10 text-white py-1.5 px-3 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
-                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
+                    <div class="flex gap-3 mt-4 sm:mt-0">
+                        <button id="btnCopyRoom" class="bg-white/10 hover:bg-white/20 border border-white/10 text-white py-2 px-4 rounded-xl text-sm font-medium transition flex items-center gap-2">
+                            <i data-lucide="copy" class="w-4 h-4"></i> Copiar Código
                         </button>
-                        <button id="btnLeaveRoom" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 py-1.5 px-3 rounded-lg text-xs font-medium transition flex items-center gap-1.5 border border-red-500/20">
-                            <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Salir
+                        <button id="btnLeaveRoom" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 py-2 px-4 rounded-xl text-sm font-medium transition flex items-center gap-2 border border-red-500/20">
+                            <i data-lucide="log-out" class="w-4 h-4"></i> Salir de la sala
                         </button>
                     </div>
                 </div>
                 <!-- Participantes Activos -->
-                <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700 flex items-center gap-2 overflow-x-auto custom-scrollbar">
-                    <i data-lucide="users" class="w-4 h-4 text-slate-400 flex-shrink-0"></i>
-                    <span class="text-xs text-slate-400 font-medium whitespace-nowrap">Conectados:</span>
+                <div class="bg-black/20 p-4 rounded-2xl border border-white/5 flex items-center gap-3 overflow-x-auto custom-scrollbar">
+                    <div class="bg-indigo-500/20 p-2 rounded-xl border border-indigo-500/30 flex-shrink-0">
+                        <i data-lucide="users" class="w-5 h-5 text-indigo-400"></i>
+                    </div>
+                    <span class="text-sm text-slate-300 font-semibold whitespace-nowrap">Conectados:</span>
                     <div id="connectedUsersList" class="flex items-center gap-2 flex-nowrap">
                         <!-- Nombres de usuarios inyectados aquí -->
                     </div>
@@ -140,7 +197,7 @@
         <div id="playerSection" class="hidden grid-cols-1 lg:grid-cols-3 gap-8 relative">
             
             <!-- Columna Izquierda: Reproductor y Buscador -->
-            <div class="col-span-1 lg:col-span-2 flex flex-col gap-6">
+            <div id="playerLeftCol" class="col-span-1 lg:col-span-2 flex flex-col gap-6">
                 
                 <!-- Buscador Integrado -->
                 <div class="relative z-50">
@@ -175,87 +232,96 @@
                             </span>
                         </div>
                     </div>
+                    <!-- NUEVO: Botón de copiar enlace -->
+                    <button id="btnCopyVideoLink" class="hidden relative z-10 bg-white/5 hover:bg-white/20 p-2.5 rounded-xl border border-white/10 transition tooltip shadow-lg" title="Copiar enlace de YouTube">
+                        <i data-lucide="link" class="w-5 h-5 text-indigo-300"></i>
+                    </button>
                 </div>
 
                 <!-- Contenedor del reproductor de YouTube con capa de reacciones -->
-                <div class="yt-container shadow-2xl border border-slate-800 relative z-0 group">
+                <div class="yt-container shadow-[0_0_40px_-10px_rgba(168,85,247,0.2)] border border-white/10 rounded-3xl relative z-0 group overflow-hidden bg-black">
                     <div id="youtubePlayer"></div>
                     <!-- Capa invisible para atrapar las reacciones animadas -->
                     <div id="reactionOverlay" class="absolute inset-0 pointer-events-none flex items-end justify-center overflow-hidden"></div>
                 </div>
                 
                 <!-- Controles Inferiores y Reacciones -->
-                <div class="flex flex-col sm:flex-row justify-between items-center text-sm text-slate-400 bg-slate-800 p-3 rounded-lg border border-slate-700 gap-3">
+                <div class="flex flex-col sm:flex-row justify-between items-center bg-black/20 p-4 rounded-2xl border border-white/5 gap-4">
                     
                     <!-- Barra de Reacciones -->
-                    <div class="flex items-center gap-2 bg-slate-900/50 px-4 py-1.5 rounded-full border border-slate-700/80 shadow-inner">
-                        <span class="text-xs text-slate-500 mr-1 hidden sm:inline"><i data-lucide="sparkles" class="w-3 h-3 inline"></i> Reaccionar:</span>
-                        <button class="reaction-btn hover:scale-125 hover:-translate-y-1 transition transform text-xl cursor-pointer" data-emoji="❤️">❤️</button>
-                        <button class="reaction-btn hover:scale-125 hover:-translate-y-1 transition transform text-xl cursor-pointer" data-emoji="🔥">🔥</button>
-                        <button class="reaction-btn hover:scale-125 hover:-translate-y-1 transition transform text-xl cursor-pointer" data-emoji="🎶">🎶</button>
-                        <button class="reaction-btn hover:scale-125 hover:-translate-y-1 transition transform text-xl cursor-pointer" data-emoji="😎">😎</button>
-                        <button class="reaction-btn hover:scale-125 hover:-translate-y-1 transition transform text-xl cursor-pointer" data-emoji="😂">😂</button>
+                    <div class="flex items-center gap-3 bg-white/5 px-6 py-3 rounded-full border border-white/10 backdrop-blur-sm shadow-inner">
+                        <span class="text-xs text-slate-400 font-semibold mr-1 hidden sm:inline"><i data-lucide="sparkles" class="w-4 h-4 inline text-yellow-400"></i> Reaccionar:</span>
+                        <button class="reaction-btn hover:scale-125 hover:-translate-y-2 transition-all transform text-2xl cursor-pointer drop-shadow-lg" data-emoji="❤️">❤️</button>
+                        <button class="reaction-btn hover:scale-125 hover:-translate-y-2 transition-all transform text-2xl cursor-pointer drop-shadow-lg" data-emoji="🔥">🔥</button>
+                        <button class="reaction-btn hover:scale-125 hover:-translate-y-2 transition-all transform text-2xl cursor-pointer drop-shadow-lg" data-emoji="🎶">🎶</button>
+                        <button class="reaction-btn hover:scale-125 hover:-translate-y-2 transition-all transform text-2xl cursor-pointer drop-shadow-lg" data-emoji="😎">😎</button>
+                        <button class="reaction-btn hover:scale-125 hover:-translate-y-2 transition-all transform text-2xl cursor-pointer drop-shadow-lg" data-emoji="😂">😂</button>
                     </div>
 
-                    <div class="flex gap-2">
+                    <div class="flex gap-3 flex-wrap justify-end">
+                        <!-- NUEVO: Botón Modo Teatro -->
+                        <button id="btnTheaterMode" class="text-slate-300 hover:text-white flex items-center gap-2 transition px-4 py-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 tooltip backdrop-blur-sm" title="Expandir pantalla">
+                            <i data-lucide="monitor-play" class="w-5 h-5"></i> <span class="hidden sm:inline font-semibold">Teatro</span>
+                        </button>
                         <!-- Botón Saltar Siguiente -->
-                        <button id="btnSkipNext" class="text-white hover:text-indigo-300 flex items-center gap-1 transition px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-full border border-slate-600">
-                            <i data-lucide="skip-forward" class="w-4 h-4"></i> Saltar
+                        <button id="btnSkipNext" class="bg-white/10 hover:bg-white/20 text-white font-semibold flex items-center gap-2 transition px-5 py-3 rounded-xl border border-white/10 backdrop-blur-sm">
+                            <i data-lucide="skip-forward" class="w-5 h-5"></i> Saltar
                         </button>
                         <!-- Botón Forzar Sincronización -->
-                        <button id="btnForceSync" class="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition px-3 py-1.5 bg-indigo-900/30 rounded-full border border-indigo-900/50 tooltip" title="Forzar resincronización">
-                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <button id="btnForceSync" class="text-indigo-300 hover:text-white flex items-center gap-1 transition px-4 py-3 bg-indigo-500/20 hover:bg-indigo-500/40 rounded-xl border border-indigo-500/30 tooltip backdrop-blur-sm" title="Forzar resincronización">
+                            <i data-lucide="refresh-cw" class="w-5 h-5"></i>
                         </button>
                     </div>
                 </div>
             </div>
 
             <!-- Columna Derecha: Cola y Chat -->
-            <div class="col-span-1 flex flex-col gap-4 h-[600px] lg:h-auto">
+            <div class="col-span-1 flex flex-col gap-4 h-[600px] lg:h-full min-h-0">
                 
                 <!-- Pestañas Cola / Chat -->
-                <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 flex flex-col flex-1 overflow-hidden">
+                <div class="glass-panel rounded-3xl flex flex-col flex-1 overflow-hidden shadow-2xl min-h-0">
                     
-                    <div class="flex border-b border-slate-700 bg-slate-900/50">
-                        <button id="tabQueue" class="flex-1 py-3 text-sm font-medium text-indigo-400 border-b-2 border-indigo-500 flex justify-center items-center gap-2">
-                            <i data-lucide="list-music" class="w-4 h-4"></i> Cola
+                    <div class="flex border-b border-white/10 bg-black/20">
+                        <button id="tabQueue" class="flex-1 py-4 text-sm font-bold text-white border-b-2 border-purple-500 flex justify-center items-center gap-2 bg-white/5 transition">
+                            <i data-lucide="list-music" class="w-5 h-5 text-purple-400"></i> Cola
                         </button>
-                        <button id="tabChat" class="flex-1 py-3 text-sm font-medium text-slate-400 hover:text-slate-200 flex justify-center items-center gap-2">
-                            <i data-lucide="message-square" class="w-4 h-4"></i> Chat
+                        <button id="tabChat" class="flex-1 py-4 text-sm font-semibold text-slate-400 hover:text-slate-200 flex justify-center items-center gap-2 transition">
+                            <i data-lucide="message-square" class="w-5 h-5"></i> Chat
                         </button>
                     </div>
 
                     <!-- Panel: Cola de Reproducción -->
-                    <div id="panelQueue" class="flex-1 overflow-y-auto custom-scrollbar flex flex-col relative bg-slate-900/30">
-                        <!-- Cabecera de la cola con botón de vaciar -->
-                        <div class="sticky top-0 bg-slate-800/90 backdrop-blur border-b border-slate-700 p-2 flex justify-between items-center z-10">
-                            <span class="text-xs text-slate-400 font-semibold uppercase">Siguientes en la lista</span>
-                            <button id="btnClearQueue" class="text-[10px] bg-red-900/40 hover:bg-red-800 text-red-300 px-2 py-1 rounded transition border border-red-700/50 flex items-center gap-1">
+                    <div id="panelQueue" class="flex-1 overflow-y-auto custom-scrollbar flex flex-col relative bg-black/10">
+                        <div class="sticky top-0 bg-slate-900/80 backdrop-blur-md border-b border-white/5 p-3 flex justify-between items-center z-10">
+                            <span class="text-[10px] text-slate-300 font-bold uppercase tracking-wider ml-2">Siguientes en la lista</span>
+                            <button id="btnClearQueue" class="text-[10px] font-bold uppercase tracking-wider bg-red-500/20 hover:bg-red-500/40 text-red-200 px-3 py-1.5 rounded-lg transition border border-red-500/30 flex items-center gap-1">
                                 <i data-lucide="trash-2" class="w-3 h-3"></i> Vaciar
                             </button>
                         </div>
                         
-                        <div id="queueItemsContainer" class="p-2 flex flex-col gap-2 min-h-[100px]">
+                        <div id="queueItemsContainer" class="p-3 flex flex-col gap-3 min-h-[100px]">
                             <!-- La cola se inyecta aquí -->
                         </div>
                         
-                        <div id="emptyQueueMsg" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-sm p-4 text-center mt-8">
-                            <i data-lucide="music" class="w-8 h-8 mb-2 opacity-50"></i>
-                            La cola está vacía.<br>Busca una canción y añádela.
+                        <div id="emptyQueueMsg" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 text-sm p-6 text-center mt-10">
+                            <div class="bg-white/5 p-5 rounded-full mb-4 border border-white/5">
+                                <i data-lucide="music-4" class="w-10 h-10 text-slate-500"></i>
+                            </div>
+                            <span class="font-bold text-slate-300 mb-1 text-base">La cola está vacía</span>
+                            <p class="text-xs text-slate-400">Busca una canción o playlist y añádela para continuar la fiesta.</p>
                         </div>
                     </div>
 
                     <!-- Panel: Chat -->
-                    <div id="panelChat" class="hidden flex-1 flex-col overflow-hidden bg-slate-900/30 relative">
-                        <!-- Eliminado el input de nombre de aquí, ya que se pide al inicio -->
-                        <div id="chatMessages" class="flex-1 overflow-y-auto custom-scrollbar p-3 flex flex-col gap-3">
+                    <div id="panelChat" class="hidden flex-1 flex-col overflow-hidden relative bg-black/10">
+                        <div id="chatMessages" class="flex-1 overflow-y-auto custom-scrollbar p-5 flex flex-col gap-4">
                             <!-- Los mensajes se inyectan aquí -->
                         </div>
-                        <div class="p-3 bg-slate-800 border-t border-slate-700">
+                        <div class="p-3 bg-black/40 border-t border-white/10 backdrop-blur-md">
                             <form id="chatForm" class="flex gap-2">
-                                <input type="text" id="inputChat" placeholder="Escribe un mensaje..." class="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 text-white" autocomplete="off">
-                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded transition">
-                                    <i data-lucide="send" class="w-4 h-4"></i>
+                                <input type="text" id="inputChat" placeholder="Escribe un mensaje..." class="flex-1 glass-input rounded-xl px-4 py-3 text-sm text-white font-medium" autocomplete="off">
+                                <button type="submit" class="btn-gradient text-white p-3 rounded-xl transition flex items-center justify-center shadow-lg">
+                                    <i data-lucide="send" class="w-5 h-5"></i>
                                 </button>
                             </form>
                         </div>
@@ -293,14 +359,17 @@
             btnCopyRoom: document.getElementById('btnCopyRoom'),
             btnLeaveRoom: document.getElementById('btnLeaveRoom'),
             playerSection: document.getElementById('playerSection'),
+            playerLeftCol: document.getElementById('playerLeftCol'),
             inputSearch: document.getElementById('inputSearch'),
             btnSearch: document.getElementById('btnSearch'),
             searchResults: document.getElementById('searchResults'),
             nowPlayingText: document.getElementById('nowPlayingText'),
             nowPlayingAddedBy: document.getElementById('nowPlayingAddedBy'),
             nowPlayingAddedByName: document.getElementById('nowPlayingAddedByName'),
+            btnCopyVideoLink: document.getElementById('btnCopyVideoLink'),
             btnForceSync: document.getElementById('btnForceSync'),
             btnSkipNext: document.getElementById('btnSkipNext'),
+            btnTheaterMode: document.getElementById('btnTheaterMode'),
             tabQueue: document.getElementById('tabQueue'),
             tabChat: document.getElementById('tabChat'),
             panelQueue: document.getElementById('panelQueue'),
@@ -339,6 +408,32 @@
             }, 3000);
         }
 
+        // NUEVO: Reproducir sonido suave al recibir mensaje
+        function playChatSound() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const ctx = new AudioContext();
+                const osc = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                
+                // Configurar un sonido de "burbuja" o "notificación" suave
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+                osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1); // A5
+                
+                gainNode.gain.setValueAtTime(0, ctx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+                
+                osc.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3);
+            } catch(e) { console.error("Error reproduciendo sonido", e); }
+        }
+
         function updateConnectionStatus(isConnected, text) {
             els.statusText.textContent = text;
             els.statusBadge.className = isConnected 
@@ -370,6 +465,39 @@
             if (currentUser) {
                 els.btnCreateRoom.disabled = !hasName;
                 els.btnJoinRoom.disabled = !hasName;
+            }
+        });
+
+        // Toggle Modo Teatro
+        let isTheaterMode = false;
+        els.btnTheaterMode.addEventListener('click', () => {
+            isTheaterMode = !isTheaterMode;
+            if (isTheaterMode) {
+                els.playerSection.classList.remove('lg:grid-cols-3');
+                els.playerSection.classList.add('lg:grid-cols-1');
+                els.playerLeftCol.classList.remove('lg:col-span-2');
+                els.btnTheaterMode.innerHTML = '<i data-lucide="minimize" class="w-5 h-5"></i> <span class="hidden sm:inline font-semibold">Normal</span>';
+            } else {
+                els.playerSection.classList.add('lg:grid-cols-3');
+                els.playerSection.classList.remove('lg:grid-cols-1');
+                els.playerLeftCol.classList.add('lg:col-span-2');
+                els.btnTheaterMode.innerHTML = '<i data-lucide="monitor-play" class="w-5 h-5"></i> <span class="hidden sm:inline font-semibold">Teatro</span>';
+            }
+            lucide.createIcons();
+            window.dispatchEvent(new Event('resize'));
+        });
+
+        // Copiar Enlace de Video
+        els.btnCopyVideoLink.addEventListener('click', (e) => {
+            const url = e.currentTarget.dataset.url;
+            if (url) {
+                const tempInput = document.createElement('input'); 
+                tempInput.value = url;
+                document.body.appendChild(tempInput); 
+                tempInput.select(); 
+                document.execCommand('copy');
+                document.body.removeChild(tempInput); 
+                showToast("Enlace de la canción copiado", "success");
             }
         });
 
@@ -412,6 +540,7 @@
         let lastKnownState = null;
         let lastVideoUpdateTimestamp = null;
         let lastReactionId = null; 
+        let previousChatCount = -1; // Para rastrear nuevos mensajes
 
         // Variables para reordenamiento de cola
         let dragStartIndex = null;
@@ -770,7 +899,21 @@
 
         function renderChat(chatArray) {
             els.chatMessages.innerHTML = '';
-            if(!chatArray) return;
+            
+            if(!chatArray) {
+                previousChatCount = 0;
+                return;
+            }
+
+            // Lógica para reproducir sonido si hay mensajes nuevos de otros
+            if (previousChatCount !== -1 && chatArray.length > previousChatCount) {
+                const newMessages = chatArray.slice(previousChatCount);
+                const hasExternalNewMsg = newMessages.some(msg => msg.user !== username);
+                if (hasExternalNewMsg) {
+                    playChatSound();
+                }
+            }
+            previousChatCount = chatArray.length;
             
             const visibleChat = chatArray.slice(-50);
             
@@ -976,6 +1119,15 @@
                         els.nowPlayingAddedBy.classList.add('hidden');
                     }
 
+                    // Mostrar el botón de copiar solo si hay video activo
+                    if (data.videoId) {
+                        els.btnCopyVideoLink.classList.remove('hidden');
+                        els.btnCopyVideoLink.dataset.url = `https://www.youtube.com/watch?v=${data.videoId}`;
+                    } else {
+                        els.btnCopyVideoLink.classList.add('hidden');
+                        delete els.btnCopyVideoLink.dataset.url;
+                    }
+
                     if (data.latestReaction && data.latestReaction.id !== lastReactionId) {
                         lastReactionId = data.latestReaction.id; 
                         showFloatingReaction(data.latestReaction.emoji, data.latestReaction.user);
@@ -1035,7 +1187,7 @@
             }
 
             if (unsubscribeRoom) { unsubscribeRoom(); unsubscribeRoom = null; }
-            currentRoomId = null; lastKnownState = null; lastVideoUpdateTimestamp = null; lastReactionId = null;
+            currentRoomId = null; lastKnownState = null; lastVideoUpdateTimestamp = null; lastReactionId = null; previousChatCount = -1;
             if (isPlayerReady && ytPlayer) ytPlayer.stopVideo();
 
             els.roomActiveInfo.classList.add('hidden'); els.roomActiveInfo.classList.remove('flex');
@@ -1043,6 +1195,7 @@
             els.roomSetup.classList.remove('hidden'); els.inputRoomId.value = '';
             els.nowPlayingText.textContent = "Esperando canción...";
             els.nowPlayingAddedBy.classList.add('hidden');
+            els.btnCopyVideoLink.classList.add('hidden');
         }
 
         // Escuchar cuando el usuario cierra la pestaña para borrarlo de la lista
