@@ -123,7 +123,7 @@
                         <div class="pl-3 flex items-center text-slate-400">
                             <i data-lucide="search" class="w-5 h-5"></i>
                         </div>
-                        <input type="text" id="inputSearch" placeholder="Busca una canción o pega un enlace..." class="flex-1 bg-transparent border-none outline-none text-white px-2 placeholder-slate-500">
+                        <input type="text" id="inputSearch" placeholder="Busca, pega un enlace de video o de playlist..." class="flex-1 bg-transparent border-none outline-none text-white px-2 placeholder-slate-500">
                         <button id="btnSearch" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-6 rounded-md font-medium transition disabled:opacity-50 flex items-center gap-2">
                             Buscar
                         </button>
@@ -366,6 +366,13 @@
             return (match && match[7].length == 11) ? match[7] : false;
         }
 
+        // NUEVO: Extraer ID de Playlist de un enlace
+        function extractPlaylistID(url) {
+            const regExp = /[?&]list=([^#\&\?]+)/;
+            const match = url.match(regExp);
+            return match ? match[1] : false;
+        }
+
         // --- Configuración API de YouTube ---
         const YOUTUBE_API_KEY = "AIzaSyDTNEawkTGfUwuImfTaDUmHqE6plo4FYnE";
 
@@ -397,6 +404,46 @@
             } catch (err) {
                 showToast("Error al buscar: " + err.message, "error");
                 els.searchResults.classList.add('hidden');
+            } finally {
+                els.btnSearch.disabled = false;
+                els.btnSearch.innerHTML = 'Buscar';
+            }
+        }
+
+        // NUEVO: Lógica para descargar una Playlist completa
+        async function loadPlaylist(playlistId) {
+            if (!YOUTUBE_API_KEY) return;
+            
+            els.btnSearch.disabled = true;
+            els.btnSearch.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>';
+            showToast("Procesando playlist...", "info");
+
+            const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${YOUTUBE_API_KEY}`;
+            
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("La playlist es privada o no existe.");
+                const data = await res.json();
+
+                const videos = data.items
+                    // Filtrar videos eliminados o privados
+                    .filter(item => item.snippet.title !== "Private video" && item.snippet.title !== "Deleted video")
+                    .map(item => ({
+                        id: item.snippet.resourceId.videoId,
+                        title: item.snippet.title ? item.snippet.title.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&#39;/g, "'") : "Sin título",
+                        uploaderName: item.snippet.videoOwnerChannelTitle || "Desconocido",
+                        thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || "",
+                        duration: 0
+                    }));
+
+                if (videos.length > 0) {
+                    await enqueuePlaylist(videos);
+                    showToast(`¡Se añadieron ${videos.length} videos de la playlist a la cola!`, "success");
+                } else {
+                    showToast("La playlist está vacía o sus videos son privados.", "error");
+                }
+            } catch (err) {
+                showToast("Error: " + err.message, "error");
             } finally {
                 els.btnSearch.disabled = false;
                 els.btnSearch.innerHTML = 'Buscar';
@@ -456,14 +503,19 @@
             if (!currentRoomId || !currentUser) return;
             const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
             try {
-                // Añadir video a la cola en Firestore
-                await updateDoc(roomRef, {
-                    queue: arrayUnion(video)
-                });
+                await updateDoc(roomRef, { queue: arrayUnion(video) });
                 showToast("Añadido a la cola", "success");
-            } catch (error) {
-                console.error("Error al añadir a la cola", error);
-            }
+            } catch (error) { console.error("Error al añadir a la cola", error); }
+        }
+
+        // NUEVO: Función para añadir múltiples videos de golpe
+        async function enqueuePlaylist(videosArray) {
+            if (!currentRoomId || !currentUser || !videosArray.length) return;
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+            try {
+                // arrayUnion acepta múltiples argumentos separándolos con comas
+                await updateDoc(roomRef, { queue: arrayUnion(...videosArray) });
+            } catch (error) { console.error("Error al añadir playlist a la cola", error); }
         }
 
         async function removeQueueItem(video) {
@@ -863,14 +915,30 @@
             document.body.removeChild(tempInput); showToast("Código copiado al portapapeles", "success");
         });
 
+        // NUEVA Lógica del botón de búsqueda para manejar Playlists vs Videos
         els.btnSearch.addEventListener('click', () => {
             const query = els.inputSearch.value.trim();
             if (!query) return;
+            
             const videoId = extractYouTubeID(query);
-            if (videoId) {
-                els.searchResults.classList.add('hidden'); els.inputSearch.value = '';
-                loadAndSyncVideo(videoId);
-            } else { performSearch(query); }
+            const playlistId = extractPlaylistID(query);
+
+            if (videoId || playlistId) {
+                els.searchResults.classList.add('hidden'); 
+                els.inputSearch.value = '';
+                
+                // Si el enlace tiene un ID de video, lo ponemos a reproducir de inmediato
+                if (videoId) {
+                    loadAndSyncVideo(videoId);
+                }
+                // Si el enlace tiene un ID de playlist (puede tener ambos), cargamos el resto a la cola
+                if (playlistId) {
+                    loadPlaylist(playlistId);
+                }
+            } else { 
+                // Si no es un enlace, hacemos una búsqueda de texto normal
+                performSearch(query); 
+            }
         });
 
         els.inputRoomId.addEventListener('keypress', (e) => { if (e.key === 'Enter') els.btnJoinRoom.click(); });
