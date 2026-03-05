@@ -647,6 +647,9 @@
                 showToast("Canción seleccionada", "success");
             }
         }
+        
+        // Exponer la función globalmente para que los botones HTML generados puedan usarla
+        window.loadAndSyncVideo = loadAndSyncVideo;
 
         document.addEventListener('click', (e) => {
             if (!els.inputSearch.contains(e.target) && !els.searchResults.contains(e.target)) {
